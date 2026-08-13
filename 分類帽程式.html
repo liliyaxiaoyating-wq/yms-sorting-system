@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>陽明山國小 - 魔法分類帽學院抽籤系統</title>
+    <style>
+        :root {
+            --yang-red: #e74c3c;
+            --yang-red-dark: #c0392b;
+            --ming-yellow: #f1c40f;
+            --ming-yellow-dark: #f39c12;
+            --shan-blue: #3498db;
+            --shan-blue-dark: #2980b9;
+            --magic-gold: #ffd700;
+            --bg-dark: #121826;
+            --card-bg: #1e293b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif, '微軟正黑體';
+        }
+
+        body {
+            background: radial-gradient(circle at center, #1b2838 0%, #0d121d 100%);
+            color: #f8fafc;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        /* Stars Background */
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle var(--duration) infinite ease-in-out;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.2; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+
+        .container {
+            position: relative;
+            z-index: 10;
+            max-width: 800px;
+            width: 100%;
+            background: rgba(30, 41, 59, 0.85);
+            backdrop-filter: blur(12px);
+            border: 2px solid rgba(255, 215, 0, 0.3);
+            border-radius: 24px;
+            padding: 40px 30px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 30px rgba(255,215,0,0.15);
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.2rem;
+            color: var(--magic-gold);
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+            margin-bottom: 8px;
+            letter-spacing: 2px;
+        }
+
+        header p {
+            color: #94a3b8;
+            font-size: 1.05rem;
+            margin-bottom: 25px;
+        }
+
+        /* Sorting Hat Visual Element */
+        .sorting-hat-box {
+            position: relative;
+            width: 180px;
+            height: 180px;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .sorting-hat-icon {
+            font-size: 110px;
+            filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5));
+            transition: transform 0.3s ease;
+            cursor: pointer;
+        }
+
+        .sorting-hat-box.animating .sorting-hat-icon {
+            animation: hatShake 0.6s infinite ease-in-out;
+        }
+
+        @keyframes hatShake {
+            0% { transform: rotate(0deg) scale(1); }
+            25% { transform: rotate(-12deg) scale(1.1); }
+            50% { transform: rotate(0deg) scale(1.05); }
+            75% { transform: rotate(12deg) scale(1.1); }
+            100% { transform: rotate(0deg) scale(1); }
+        }
+
+        /* Input Form */
+        .input-group {
+            display: flex;
+            gap: 12px;
+            max-width: 450px;
+            margin: 0 auto 25px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 14px 20px;
+            border-radius: 12px;
+            border: 2px solid #334155;
+            background: rgba(15, 23, 42, 0.8);
+            color: #fff;
+            font-size: 1.1rem;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--magic-gold);
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: bold;
+            padding: 14px 28px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(217, 119, 6, 0.4);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(217, 119, 6, 0.6);
+            background: linear-gradient(135deg, #fbbf24, #d97706);
+        }
+
+        .btn:disabled {
+            background: #475569;
+            box-shadow: none;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Dialogue Box */
+        .dialogue-box {
+            min-height: 60px;
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 12px;
+            padding: 15px 20px;
+            margin-bottom: 25px;
+            border-left: 4px solid var(--magic-gold);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.15rem;
+            color: #e2e8f0;
+            font-style: italic;
+        }
+
+        /* Result Card */
+        .result-card {
+            display: none;
+            border-radius: 20px;
+            padding: 30px;
+            margin-top: 10px;
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        @keyframes popIn {
+            0% { opacity: 0; transform: scale(0.8) translateY(20px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .result-card.yang {
+            background: linear-gradient(135deg, rgba(231, 76, 60, 0.25), rgba(192, 57, 43, 0.4));
+            border: 2px solid var(--yang-red);
+        }
+
+        .result-card.ming {
+            background: linear-gradient(135deg, rgba(241, 196, 15, 0.25), rgba(243, 156, 18, 0.4));
+            border: 2px solid var(--ming-yellow);
+        }
+
+        .result-card.shan {
+            background: linear-gradient(135deg, rgba(52, 152, 219, 0.25), rgba(41, 128, 185, 0.4));
+            border: 2px solid var(--shan-blue);
+        }
+
+        .house-badge {
+            font-size: 3.5rem;
+            margin-bottom: 10px;
+        }
+
+        .student-name-tag {
+            font-size: 1.3rem;
+            color: #cbd5e1;
+            margin-bottom: 5px;
+        }
+
+        .house-title {
+            font-size: 2.5rem;
+            font-weight: 900;
+            letter-spacing: 3px;
+            margin-bottom: 12px;
+        }
+
+        .yang .house-title { color: #ff6b6b; text-shadow: 0 0 10px rgba(231,76,60,0.5); }
+        .ming .house-title { color: #feca57; text-shadow: 0 0 10px rgba(241,196,15,0.5); }
+        .shan .house-title { color: #54a0ff; text-shadow: 0 0 10px rgba(52,152,219,0.5); }
+
+        .house-motto {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #f1f5f9;
+        }
+
+        .house-desc {
+            font-size: 1rem;
+            line-height: 1.6;
+            color: #e2e8f0;
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 12px;
+        }
+
+        /* Stats & History Grid */
+        .history-section {
+            margin-top: 35px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding-top: 25px;
+            text-align: left;
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .history-title {
+            font-size: 1.2rem;
+            color: var(--magic-gold);
+            font-weight: bold;
+        }
+
+        .stats-pills {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .pill {
+            flex: 1;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .pill-yang { background: rgba(231, 76, 60, 0.2); border: 1px solid var(--yang-red); color: #ff6b6b; }
+        .pill-ming { background: rgba(241, 196, 15, 0.2); border: 1px solid var(--ming-yellow); color: #feca57; }
+        .pill-shan { background: rgba(52, 152, 219, 0.2); border: 1px solid var(--shan-blue); color: #54a0ff; }
+
+        .history-list {
+            max-height: 180px;
+            overflow-y: auto;
+            background: rgba(15, 23, 42, 0.5);
+            border-radius: 10px;
+            padding: 10px;
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            font-size: 0.95rem;
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .tag {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .container { padding: 25px 18px; }
+            header h1 { font-size: 1.75rem; }
+            .input-group { flex-direction: column; }
+            .btn { width: 100%; }
+            .stats-pills { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="stars" id="starsContainer"></div>
+
+    <div class="container">
+        <header>
+            <h1>陽明山國小 魔法分類帽</h1>
+            <p>「草山之好．知行合一」全校榮譽制度學院抽籤儀式</p>
+        </header>
+
+        <div class="sorting-hat-box" id="hatBox">
+            <div class="sorting-hat-icon" id="hatIcon">🧙‍♂️</div>
+        </div>
+
+        <div class="input-group">
+            <input type="text" id="studentName" placeholder="請輸入學生姓名..." autocomplete="off">
+            <button class="btn" id="sortBtn" onclick="startSorting()">戴上分類帽！</button>
+        </div>
+
+        <div class="dialogue-box" id="dialogue">
+            「嗯... 讓我看看，你的心中隱藏著什麼樣的光芒與潛力？」
+        </div>
+
+        <div class="result-card" id="resultCard">
+            <div class="house-badge" id="houseBadge">☀️</div>
+            <div class="student-name-tag" id="resStudentName">王小明 同學</div>
+            <div class="house-title" id="houseTitle">陽學院</div>
+            <div class="house-motto" id="houseMotto">熱情活力．勇於挑戰</div>
+            <div class="house-desc" id="houseDesc">
+                你擁有陽光般的熱情與豐沛的運動精神！在陽學院，你將與夥伴們一起勇於挑戰自我、鍛鍊身心，成為充滿行動力的陽明山國小代言人！
+            </div>
+        </div>
+
+        <div class="history-section">
+            <div class="history-header">
+                <span class="history-title">📜 分類記錄與人數統計</span>
+                <button class="btn" style="padding: 4px 10px; font-size: 0.8rem;" onclick="clearHistory()">重置記錄</button>
+            </div>
+
+            <div class="stats-pills">
+                <div class="pill pill-yang">陽學院：<span id="countYang">0</span> 人</div>
+                <div class="pill pill-ming">明學院：<span id="countMing">0</span> 人</div>
+                <div class="pill pill-shan">山學院：<span id="countShan">0</span> 人</div>
+            </div>
+
+            <div class="history-list" id="historyList">
+                <div style="text-align: center; color: #64748b; padding: 15px;">尚無分類記錄，請輸入姓名開始抽籤！</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // House Data Mapping based on Yangmingshan Elementary Scheme
+        const houses = {
+            yang: {
+                name: '陽學院',
+                badge: '☀️',
+                motto: '熱情活力．勇於挑戰',
+                colorClass: 'yang',
+                tagBg: 'rgba(231, 76, 60, 0.2)',
+                tagColor: '#ff6b6b',
+                desc: '你擁有陽光般的熱情與豐沛的運動精神！在【陽學院】，你將與夥伴們一起勇於挑戰自我、鍛鍊身心、喜愛運動，展現熱情活力的陽明山國小代言人風采！'
+            },
+            ming: {
+                name: '明學院',
+                badge: '💡',
+                motto: '明辨是非．建立讀書好習慣',
+                colorClass: 'ming',
+                tagBg: 'rgba(241, 196, 15, 0.2)',
+                tagColor: '#feca57',
+                desc: '你擁有聰慧的頭腦與喜愛學習的心！在【明學院】，你將學會明辨是非、培養良好的閱讀與學習習慣，以智慧與敏銳的觀察力帶領大家探索新知！'
+            },
+            shan: {
+                name: '山學院',
+                badge: '⛰️',
+                motto: '穩重踏實．互助合作．成就彼此',
+                colorClass: 'shan',
+                tagBg: 'rgba(52, 152, 219, 0.2)',
+                tagColor: '#54a0ff',
+                desc: '你擁有如山一般的穩重與值得信任的品格！在【山學院】，你將透過團隊合作、互助友愛來成就彼此，成為大家最堅實、最安心的後盾！'
+            }
+        };
+
+        const dialogues = [
+            "「嗯... 讓我仔細瞧瞧... 你的眼神中流露出不可思議的特質...」",
+            "「這可難辦了，你充滿了多種可能性... 究竟該去哪裡呢？」",
+            "「有著強烈的決心，是的，還有對知識與成長的渴望...」",
+            "「傾聽你內心的聲音... 魔法分類帽已經看透了一切！」",
+            "「哈哈！我知道了，最適合你的學院絕對是——」"
+        ];
+
+        let historyData = [];
+
+        // Generate stars background
+        function createStars() {
+            const container = document.getElementById('starsContainer');
+            for(let i = 0; i < 60; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.width = Math.random() * 3 + 1 + 'px';
+                star.style.height = star.style.width;
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.setProperty('--duration', (Math.random() * 3 + 2) + 's');
+                container.appendChild(star);
+            }
+        }
+
+        createStars();
+
+        function startSorting() {
+            const nameInput = document.getElementById('studentName');
+            const name = nameInput.value.trim();
+
+            if (!name) {
+                alert('請先輸入學生姓名再進行分類儀式！');
+                nameInput.focus();
+                return;
+            }
+
+            const sortBtn = document.getElementById('sortBtn');
+            const hatBox = document.getElementById('hatBox');
+            const dialogue = document.getElementById('dialogue');
+            const resultCard = document.getElementById('resultCard');
+
+            // Disable interaction during process
+            sortBtn.disabled = true;
+            nameInput.disabled = true;
+            resultCard.style.display = 'none';
+
+            // Animation & Dialogue sequence
+            hatBox.classList.add('animating');
+            
+            let dialogueIndex = 0;
+            dialogue.innerText = dialogues[0];
+
+            const dialogueInterval = setInterval(() => {
+                dialogueIndex++;
+                if (dialogueIndex < dialogues.length - 1) {
+                    dialogue.innerText = dialogues[dialogueIndex];
+                }
+            }, 700);
+
+            setTimeout(() => {
+                clearInterval(dialogueInterval);
+                hatBox.classList.remove('animating');
+                
+                // Randomly select house
+                const houseKeys = ['yang', 'ming', 'shan'];
+                const selectedKey = houseKeys[Math.floor(Math.random() * houseKeys.length)];
+                const house = houses[selectedKey];
+
+                dialogue.innerText = `「太棒了！不用懷疑，${name} 同學最適合——【${house.name}】！」`;
+
+                // Render Result Card
+                document.getElementById('houseBadge').innerText = house.badge;
+                document.getElementById('resStudentName').innerText = `${name} 同學`;
+                document.getElementById('houseTitle').innerText = house.name;
+                document.getElementById('houseMotto').innerText = house.motto;
+                document.getElementById('houseDesc').innerText = house.desc;
+
+                resultCard.className = `result-card ${house.colorClass}`;
+                resultCard.style.display = 'block';
+
+                // Save to history
+                addHistory(name, selectedKey);
+
+                // Enable interaction
+                sortBtn.disabled = false;
+                nameInput.disabled = false;
+                nameInput.value = '';
+                nameInput.focus();
+
+            }, 3200);
+        }
+
+        function addHistory(name, houseKey) {
+            const house = houses[houseKey];
+            historyData.unshift({
+                name: name,
+                houseKey: houseKey,
+                houseName: house.name,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+            });
+
+            updateHistoryUI();
+        }
+
+        function updateHistoryUI() {
+            const listContainer = document.getElementById('historyList');
+            
+            if (historyData.length === 0) {
+                listContainer.innerHTML = '<div style="text-align: center; color: #64748b; padding: 15px;">尚無分類記錄，請輸入姓名開始抽籤！</div>';
+                document.getElementById('countYang').innerText = '0';
+                document.getElementById('countMing').innerText = '0';
+                document.getElementById('countShan').innerText = '0';
+                return;
+            }
+
+            let yangCount = 0, mingCount = 0, shanCount = 0;
+
+            listContainer.innerHTML = historyData.map(item => {
+                if (item.houseKey === 'yang') yangCount++;
+                if (item.houseKey === 'ming') mingCount++;
+                if (item.houseKey === 'shan') shanCount++;
+
+                const house = houses[item.houseKey];
+                return `
+                    <div class="history-item">
+                        <span><strong>${item.name}</strong></span>
+                        <span class="tag" style="background:${house.tagBg}; color:${house.tagColor};">${house.badge} ${house.houseName}</span>
+                        <span style="color:#64748b; font-size:0.8rem;">${item.time}</span>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('countYang').innerText = yangCount;
+            document.getElementById('countMing').innerText = mingCount;
+            document.getElementById('countShan').innerText = shanCount;
+        }
+
+        function clearHistory() {
+            if (confirm('確定要清空分類紀錄與統計數據嗎？')) {
+                historyData = [];
+                updateHistoryUI();
+            }
+        }
+
+        // Support Enter key submit
+        document.getElementById('studentName').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                startSorting();
+            }
+        });
+    </script>
+</body>
+</html>

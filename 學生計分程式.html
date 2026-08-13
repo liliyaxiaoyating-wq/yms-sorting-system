@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>陽明山國小 - 個別學生榮譽計分與魔法存摺系統</title>
+    <style>
+        :root {
+            --yang-red: #e74c3c;
+            --yang-red-dark: #c0392b;
+            --ming-yellow: #f1c40f;
+            --ming-yellow-dark: #f39c12;
+            --shan-blue: #3498db;
+            --shan-blue-dark: #2980b9;
+            --magic-gold: #ffd700;
+            --bg-dark: #0f172a;
+            --card-bg: #1e293b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif, '微軟正黑體';
+        }
+
+        body {
+            background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+            color: #f8fafc;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 1100px;
+            width: 100%;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        header h1 {
+            font-size: 2.2rem;
+            color: var(--magic-gold);
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
+            margin-bottom: 8px;
+        }
+
+        header p {
+            color: #94a3b8;
+            font-size: 1.05rem;
+        }
+
+        /* 頂部管理與統計區 */
+        .top-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            background: rgba(30, 41, 59, 0.85);
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            border-radius: 16px;
+            padding: 18px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .stat-title {
+            font-size: 0.9rem;
+            color: #94a3b8;
+            margin-bottom: 6px;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        /* 操作儀表板 Layout */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 25px;
+        }
+
+        @media (max-width: 850px) {
+            .main-grid { grid-template-columns: 1fr; }
+        }
+
+        .panel {
+            background: rgba(30, 41, 59, 0.85);
+            border-radius: 18px;
+            padding: 22px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+        }
+
+        .panel-title {
+            font-size: 1.25rem;
+            color: var(--magic-gold);
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 10px;
+        }
+
+        /* 新增學生與給分表單 */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.88rem;
+            color: #cbd5e1;
+            margin-bottom: 6px;
+        }
+
+        input[type="text"], input[type="number"], select {
+            width: 100%;
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: 1px solid #475569;
+            background: #0f172a;
+            color: #fff;
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--magic-gold);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 11px;
+            border-radius: 10px;
+            border: none;
+            font-weight: bold;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.2s;
+        }
+
+        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-primary { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; }
+        .btn-add-student { background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; }
+        .btn-award { background: linear-gradient(135deg, #10b981, #059669); color: white; }
+
+        /* 快速權限與過濾器 */
+        .controls-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 180px;
+        }
+
+        /* 學生卡片列表 */
+        .student-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 16px;
+            max-height: 520px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .student-card {
+            background: rgba(15, 23, 42, 0.7);
+            border-radius: 14px;
+            padding: 16px;
+            border-left: 5px solid #94a3b8;
+            position: relative;
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+        }
+
+        .student-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 18px rgba(0,0,0,0.5);
+        }
+
+        .student-card.yang { border-left-color: var(--yang-red); }
+        .student-card.ming { border-left-color: var(--ming-yellow); }
+        .student-card.shan { border-left-color: var(--shan-blue); }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .student-name {
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #f8fafc;
+        }
+
+        .student-class {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            background: rgba(255,255,255,0.08);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .house-tag {
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            display: inline-block;
+        }
+
+        .house-tag.yang { color: #ff6b6b; }
+        .house-tag.ming { color: #feca57; }
+        .house-tag.shan { color: #54a0ff; }
+
+        .score-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            background: rgba(0,0,0,0.3);
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin-top: 8px;
+        }
+
+        .score-label { font-size: 0.8rem; color: #cbd5e1; }
+        .score-val { font-size: 1.4rem; font-weight: bold; color: var(--magic-gold); }
+
+        .quick-actions {
+            display: flex;
+            gap: 5px;
+            margin-top: 10px;
+        }
+
+        .btn-mini {
+            flex: 1;
+            padding: 4px;
+            font-size: 0.78rem;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .btn-plus { background: #22c55e; color: white; }
+        .btn-minus { background: #ef4444; color: white; }
+
+        /* 彈窗 Modal (學生歷程明細) */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.75);
+            backdrop-filter: blur(5px);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: #1e293b;
+            width: 100%;
+            max-width: 600px;
+            border-radius: 18px;
+            padding: 25px;
+            border: 2px solid var(--magic-gold);
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 12px;
+            margin-bottom: 15px;
+        }
+
+        .modal-title { font-size: 1.3rem; color: var(--magic-gold); }
+        .close-btn { background: none; border: none; color: #94a3b8; font-size: 1.5rem; cursor: pointer; }
+
+        .history-list {
+            overflow-y: auto;
+            flex: 1;
+            margin-bottom: 15px;
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            font-size: 0.9rem;
+        }
+
+        .badge-icon {
+            display: inline-block;
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>🧙‍♂️ 陽明山國小 - 個別學生魔法榮譽存摺</h1>
+        <p>「草山之好．知行合一」個人點數累積與學院貢獻系統</p>
+    </header>
+
+    <!-- 頂部統計指標 -->
+    <div class="top-stats">
+        <div class="stat-card">
+            <div class="stat-title">Registered Students / 登錄總人數</div>
+            <div class="stat-value" id="totalStudentsCount">0</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-title">☀️ 陽學院學生總得分</div>
+            <div class="stat-value" style="color: #ff6b6b;" id="totalYangScore">0</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-title">💡 明學院學生總得分</div>
+            <div class="stat-value" style="color: #feca57;" id="totalMingScore">0</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-title">⛰️ 山學院學生總得分</div>
+            <div class="stat-value" style="color: #54a0ff;" id="totalShanScore">0</div>
+        </div>
+    </div>
+
+    <!-- 主要操作版面 -->
+    <div class="main-grid">
+        <!-- 左側面板：新增學生 / 給分作業 -->
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+            <!-- 新增學生 -->
+            <div class="panel">
+                <div class="panel-title">👤 新增學生名單</div>
+                <div class="form-group">
+                    <label>學生姓名</label>
+                    <input type="text" id="newStudentName" placeholder="例如：陳小明">
+                </div>
+                <div class="form-group">
+                    <label>年級 / 班級</label>
+                    <input type="text" id="newStudentClass" placeholder="例如：四年甲班">
+                </div>
+                <div class="form-group">
+                    <label>所屬學院</label>
+                    <select id="newStudentHouse">
+                        <option value="yang">☀️ 陽學院 (熱情.愛運動)</option>
+                        <option value="ming">💡 明學院 (明是非.愛學習)</option>
+                        <option value="shan">⛰️ 山學院 (穩重.值得信任)</option>
+                    </select>
+                </div>
+                <button class="btn btn-add-student" onclick="addStudent()">新增學生至系統</button>
+            </div>
+
+            <!-- 個別給分登錄 -->
+            <div class="panel">
+                <div class="panel-title">⭐ 登錄榮譽事由給分</div>
+                <div class="form-group">
+                    <label>選擇學生</label>
+                    <select id="awardStudentSelect">
+                        <option value="">-- 請選擇學生 --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>表現類別 / 事由</label>
+                    <input type="text" id="awardReason" placeholder="例如：熱心服務、語文競賽獲勝、閱讀卡滿張">
+                </div>
+                <div class="form-group">
+                    <label>獎勵點數 (+ / -)</label>
+                    <input type="number" id="awardPoints" value="2">
+                </div>
+                <button class="btn btn-award" onclick="awardPoints()">記錄點數並加總</button>
+            </div>
+        </div>
+
+        <!-- 右側面板：學生卡片列表與篩選 -->
+        <div class="panel">
+            <div class="panel-title">
+                <span>🎒 學生榮譽榜清單</span>
+                <button style="margin-left:auto; font-size:0.8rem; padding:4px 8px; background:#475569; border:none; border-radius:6px; color:#fff; cursor:pointer;" onclick="resetData()">重置全部</button>
+            </div>
+
+            <!-- 控制與過濾列 -->
+            <div class="controls-bar">
+                <input type="text" class="search-box" id="searchInput" placeholder="🔍 搜尋學生姓名或班級..." oninput="renderStudents()">
+                <select id="filterHouse" style="width: auto;" onchange="renderStudents()">
+                    <option value="all">全部學院</option>
+                    <option value="yang">☀️ 陽學院</option>
+                    <option value="ming">💡 明學院</option>
+                    <option value="shan">⛰️ 山學院</option>
+                </select>
+            </div>
+
+            <!-- 學生動態卡片牆 -->
+            <div class="student-grid" id="studentGrid">
+                <!-- 動態生成的學生卡片 -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 學生詳細歷程 Modal -->
+<div class="modal" id="studentModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-title" id="modalStudentTitle">學生個人魔法點數歷程</div>
+            <button class="close-btn" onclick="closeModal()">&times;</button>
+        </div>
+        <div style="margin-bottom: 15px; color: #cbd5e1; font-size: 0.95rem;" id="modalStudentInfo">
+            <!-- 學生資訊 -->
+        </div>
+        <div class="history-list" id="modalHistoryList">
+            <!-- 歷程列表 -->
+        </div>
+        <button class="btn" style="background: #475569; color: white;" onclick="closeModal()">關閉視窗</button>
+    </div>
+</div>
+
+<script>
+    // 初始化預設學生資料（示範資料）
+    const defaultStudents = [
+        { id: 's1', name: '張小華', className: '四年甲班', house: 'yang', points: 15, history: [{ reason: '運動會大拉力賽第一名', points: 10, time: '10:15' }, { reason: '熱心協助清潔班級', points: 5, time: '11:00' }] },
+        { id: 's2', name: '李明哲', className: '五年乙班', house: 'ming', points: 12, history: [{ reason: '自主學習閱讀卡達成', points: 10, time: '09:30' }, { reason: '課堂主動發問發言', points: 2, time: '10:45' }] },
+        { id: 's3', name: '林雅婷', className: '三年丙班', house: 'shan', points: 18, history: [{ reason: '代表學校參加品格比賽優秀', points: 15, time: '08:50' }, { reason: '互助合作協助同學', points: 3, time: '13:20' }] }
+    ];
+
+    let students = JSON.parse(localStorage.getItem('yms_student_data')) || defaultStudents;
+
+    const houseConfig = {
+        yang: { name: '陽學院', badge: '☀️', colorClass: 'yang' },
+        ming: { name: '明學院', badge: '💡', colorClass: 'ming' },
+        shan: { name: '山學院', badge: '⛰️', colorClass: 'shan' }
+    };
+
+    function saveData() {
+        localStorage.setItem('yms_student_data', JSON.stringify(students));
+        updateStats();
+        renderStudents();
+        updateStudentSelect();
+    }
+
+    function updateStats() {
+        document.getElementById('totalStudentsCount').innerText = students.length;
+        
+        let yang = 0, ming = 0, shan = 0;
+        students.forEach(s => {
+            if (s.house === 'yang') yang += s.points;
+            if (s.house === 'ming') ming += s.points;
+            if (s.house === 'shan') shan += s.points;
+        });
+
+        document.getElementById('totalYangScore').innerText = yang;
+        document.getElementById('totalMingScore').innerText = ming;
+        document.getElementById('totalShanScore').innerText = shan;
+    }
+
+    function updateStudentSelect() {
+        const select = document.getElementById('awardStudentSelect');
+        select.innerHTML = '<option value="">-- 請選擇學生 --</option>' + 
+            students.map(s => `<option value="${s.id}">${s.className} - ${s.name} (${houseConfig[s.house].badge} ${houseConfig[s.house].name})</option>`).join('');
+    }
+
+    function renderStudents() {
+        const grid = document.getElementById('studentGrid');
+        const search = document.getElementById('searchInput').value.toLowerCase();
+        const houseFilter = document.getElementById('filterHouse').value;
+
+        const filtered = students.filter(s => {
+            const matchesSearch = s.name.toLowerCase().includes(search) || s.className.toLowerCase().includes(search);
+            const matchesHouse = houseFilter === 'all' || s.house === houseFilter;
+            return matchesSearch && matchesHouse;
+        });
+
+        if (filtered.length === 0) {
+            grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: #64748b; padding: 30px;">未找到符合條件的學生資料</div>';
+            return;
+        }
+
+        grid.innerHTML = filtered.map(s => {
+            const h = houseConfig[s.house];
+            return `
+                <div class="student-card ${h.colorClass}" onclick="openStudentModal('${s.id}')">
+                    <div class="card-header">
+                        <span class="student-name">${s.name}</span>
+                        <span class="student-class">${s.className}</span>
+                    </div>
+                    <div class="house-tag ${h.colorClass}">${h.badge} ${h.name}</div>
+                    <div class="score-info">
+                        <span class="score-label">累積魔法榮譽點</span>
+                        <span class="score-val">${s.points}</span>
+                    </div>
+                    <div class="quick-actions" onclick="event.stopPropagation()">
+                        <button class="btn-mini btn-plus" onclick="quickAward('${s.id}', 1)">+1點</button>
+                        <button class="btn-mini btn-plus" onclick="quickAward('${s.id}', 5)">+5點</button>
+                        <button class="btn-mini btn-minus" onclick="quickAward('${s.id}', -1)">-1點</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function addStudent() {
+        const name = document.getElementById('newStudentName').value.trim();
+        const className = document.getElementById('newStudentClass').value.trim();
+        const house = document.getElementById('newStudentHouse').value;
+
+        if (!name || !className) {
+            alert('請輸入學生姓名與年級班級！');
+            return;
+        }
+
+        const newStudent = {
+            id: 's_' + Date.now(),
+            name,
+            className,
+            house,
+            points: 0,
+            history: []
+        };
+
+        students.unshift(newStudent);
+        saveData();
+
+        document.getElementById('newStudentName').value = '';
+        document.getElementById('newStudentClass').value = '';
+        alert(`成功將 ${name} 同學加入 ${houseConfig[house].name}！`);
+    }
+
+    function awardPoints() {
+        const studentId = document.getElementById('awardStudentSelect').value;
+        const reason = document.getElementById('awardReason').value.trim();
+        const points = parseInt(document.getElementById('awardPoints').value);
+
+        if (!studentId) {
+            alert('請選擇要發放點數的學生！');
+            return;
+        }
+        if (!reason) {
+            alert('請輸入加分/扣分事由！');
+            return;
+        }
+        if (isNaN(points)) {
+            alert('請輸入有效點數！');
+            return;
+        }
+
+        const student = students.find(s => s.id === studentId);
+        if (student) {
+            student.points += points;
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            student.history.unshift({ reason, points, time });
+            saveData();
+
+            document.getElementById('awardReason').value = '';
+            alert(`已給予 ${student.name} ${points >= 0 ? '+' : ''}${points} 點！`);
+        }
+    }
+
+    function quickAward(studentId, points) {
+        const student = students.find(s => s.id === studentId);
+        if (student) {
+            student.points += points;
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const reason = points >= 0 ? '日常課堂優良表現' : '需要調整提醒';
+            student.history.unshift({ reason, points, time });
+            saveData();
+        }
+    }
+
+    function openStudentModal(studentId) {
+        const student = students.find(s => s.id === studentId);
+        if (!student) return;
+
+        const h = houseConfig[student.house];
+        document.getElementById('modalStudentTitle').innerText = `📜 ${student.name} 同學的魔法榮譽存摺`;
+        document.getElementById('modalStudentInfo').innerHTML = `
+            班級：<strong>${student.className}</strong> ｜ 
+            所屬學院：<span class="house-tag ${h.colorClass}">${h.badge} ${h.name}</span> ｜ 
+            總累積榮譽點數：<strong style="color:var(--magic-gold); font-size:1.2rem;">${student.points}</strong> 點
+        `;
+
+        const historyList = document.getElementById('modalHistoryList');
+        if (student.history.length === 0) {
+            historyList.innerHTML = '<div style="text-align:center; color:#64748b; padding:20px;">尚無給分紀錄</div>';
+        } else {
+            historyList.innerHTML = student.history.map(item => `
+                <div class="history-item">
+                    <span>${item.reason}</span>
+                    <div>
+                        <span style="font-weight:bold; color:${item.points >= 0 ? '#22c55e' : '#ef4444'}; margin-right:12px;">
+                            ${item.points >= 0 ? '+' : ''}${item.points} 點
+                        </span>
+                        <span style="color:#64748b; font-size:0.8rem;">${item.time}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        document.getElementById('studentModal').style.display = 'flex';
+    }
+
+    function closeModal() {
+        document.getElementById('studentModal').style.display = 'none';
+    }
+
+    function resetData() {
+        if (confirm('確定要重置所有學生資料與點數紀錄嗎？')) {
+            students = defaultStudents;
+            saveData();
+        }
+    }
+
+    // 初始載入
+    saveData();
+</script>
+
+</body>
+</html>
