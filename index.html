@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>陽明山國小 - 魔法榮譽制度管理系統 (完整旗艦版)</title>
+    <title>陽明山國小 - 魔法榮譽制度管理系統 (競賽對抗版)</title>
     <style>
         :root {
             --yang-red: #ef4444;
@@ -38,7 +38,6 @@
 
         .btn-action { background: #f59e0b; color: #0f172a; font-weight: bold; padding: 10px 18px; border: none; border-radius: 10px; cursor: pointer; font-size: 0.95rem; display: inline-flex; align-items: center; gap: 6px; transition: transform 0.1s, opacity 0.2s; }
         .btn-action:hover { opacity: 0.9; transform: translateY(-1px); }
-        .btn-action:disabled { background: #475569; cursor: not-allowed; transform: none; }
         .btn-green { background: #10b981; color: white; }
         .btn-blue { background: #3b82f6; color: white; }
         .btn-purple { background: #8b5cf6; color: white; }
@@ -47,7 +46,63 @@
             padding: 10px 14px; border-radius: 10px; border: 1px solid #475569; background: #0f172a; color: #fff; font-size: 0.95rem; outline: none;
         }
 
-        /* 可愛分類帽動畫靈魂組件 */
+        /* 競賽對抗儀表板樣式 */
+        .battle-dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 18px;
+            margin-bottom: 25px;
+        }
+
+        .battle-card {
+            background: #0f172a;
+            border-radius: 16px;
+            padding: 20px;
+            position: relative;
+            border: 2px solid #334155;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+            transition: transform 0.3s ease;
+        }
+
+        .battle-card:hover { transform: translateY(-3px); }
+        .battle-card.yang { border-color: var(--yang-red); }
+        .battle-card.ming { border-color: var(--ming-yellow); }
+        .battle-card.shan { border-color: var(--shan-blue); }
+
+        .crown-badge {
+            position: absolute;
+            top: -12px;
+            right: 15px;
+            background: var(--magic-gold);
+            color: #0f172a;
+            font-size: 0.8rem;
+            font-weight: bold;
+            padding: 3px 10px;
+            border-radius: 12px;
+            box-shadow: 0 0 10px rgba(251, 191, 36, 0.6);
+            display: none;
+        }
+
+        .bar-container {
+            background: #1e293b;
+            height: 12px;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-top: 12px;
+        }
+
+        .bar-fill {
+            height: 100%;
+            width: 0%;
+            transition: width 0.8s ease-in-out;
+            border-radius: 6px;
+        }
+
+        .fill-yang { background: linear-gradient(90deg, #f87171, #ef4444); }
+        .fill-ming { background: linear-gradient(90deg, #fde047, #f59e0b); }
+        .fill-shan { background: linear-gradient(90deg, #60a5fa, #3b82f6); }
+
+        /* 可愛分類帽動畫組件 */
         .sorting-hat-box { position: relative; width: 160px; height: 160px; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; }
         .sorting-hat-icon { font-size: 100px; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.6)); transition: transform 0.3s ease; }
         .sorting-hat-box.animating .sorting-hat-icon { animation: hatShake 0.6s infinite ease-in-out; }
@@ -86,7 +141,6 @@
         .sync-status { font-size: 0.85rem; color: #22c55e; margin-left: auto; display: inline-flex; align-items: center; gap: 5px; }
     </style>
 
-    <!-- 載入 Firebase 與 SheetJS Excel 元件 -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -96,18 +150,18 @@
     <div class="stars" id="starsContainer"></div>
 
     <nav class="top-nav">
-        <button class="nav-btn active" onclick="switchTab('sorting')">🧙‍♂️ 魔法分類帽儀式</button>
+        <button class="nav-btn" onclick="switchTab('sorting')">🧙‍♂️ 魔法分類帽儀式</button>
         <button class="nav-btn" onclick="switchTab('import')">📤 教師成績上傳專區</button>
-        <button class="nav-btn" onclick="switchTab('studentScores')">🎒 全校學生榮譽榜</button>
+        <button class="nav-btn active" onclick="switchTab('studentScores')">🎒 全校學生榮譽榜</button>
         <button class="nav-btn" onclick="switchTab('houseScores')">🏆 學院總積分</button>
     </nav>
 
     <div class="main-container">
 
-        <!-- TAB 1: 可愛魔法分類帽 (動畫 + 歷史統計復原版) -->
-        <div id="tab-sorting" class="tab-content active">
+        <!-- TAB 1: 可愛魔法分類帽 -->
+        <div id="tab-sorting" class="tab-content">
             <div class="panel" style="text-align: center;">
-                <h1 style="color: var(--magic-gold); margin-bottom: 8px; font-size: 2.2rem; text-shadow: 0 0 10px rgba(255,215,0,0.5);">陽明山國小 魔法分類帽</h1>
+                <h1 style="color: var(--magic-gold); margin-bottom: 8px; font-size: 2.2rem;">陽明山國小 魔法分類帽</h1>
                 <p style="color: #94a3b8; margin-bottom: 20px;">「草山之好．知行合一」全校榮譽制度學院抽籤儀式</p>
 
                 <div class="sorting-hat-box" id="hatBox">
@@ -131,7 +185,6 @@
                     <p id="houseDesc" style="color: #e2e8f0; font-size: 0.95rem; background: rgba(0,0,0,0.3); padding: 12px; border-radius: 10px; line-height: 1.6;"></p>
                 </div>
 
-                <!-- 學生學院紀錄與人數統計區 -->
                 <div style="margin-top: 30px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px; text-align: left;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                         <span style="font-weight: bold; color: var(--magic-gold); font-size: 1.1rem;">📜 分類記錄與人數統計</span>
@@ -172,7 +225,6 @@
                 </div>
             </div>
 
-            <!-- 管理者專區 -->
             <div class="panel">
                 <div class="panel-title">🔒 管理者專區（主表匯出權限）</div>
                 <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid var(--magic-gold); border-radius: 12px; padding: 15px;">
@@ -189,10 +241,63 @@
             </div>
         </div>
 
-        <!-- TAB 3: 全校學生榮譽榜 -->
-        <div id="tab-studentScores" class="tab-content">
+        <!-- TAB 3: 全校學生榮譽榜 (新增學院對抗賽儀表板) -->
+        <div id="tab-studentScores" class="tab-content active">
             <div class="panel">
-                <div class="panel-title">🎒 全校學生榮譽點數榜</div>
+                <div class="panel-title">
+                    <span>⚔️ 三大學院榮譽爭霸對抗賽</span>
+                    <span class="sync-status">🟢 即時戰況連線中</span>
+                </div>
+
+                <!-- 學院對抗實時儀表板 -->
+                <div class="battle-dashboard">
+                    <div class="battle-card yang" id="b-card-yang">
+                        <div class="crown-badge" id="crown-yang">👑 榜首領先</div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 1.8rem;">☀️ <strong style="color: #f87171;">陽學院</strong></span>
+                            <span style="font-size: 1.8rem; font-weight: 900; color: #f87171;" id="b-score-yang">0 分</span>
+                        </div>
+                        <div class="bar-container">
+                            <div class="bar-fill fill-yang" id="b-bar-yang"></div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 0.8rem; color: #94a3b8;">
+                            <span>戰力佔比</span>
+                            <span id="b-pct-yang" style="font-weight: bold; color: #f87171;">0%</span>
+                        </div>
+                    </div>
+
+                    <div class="battle-card ming" id="b-card-ming">
+                        <div class="crown-badge" id="crown-ming">👑 榜首領先</div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 1.8rem;">💡 <strong style="color: #fbbf24;">明學院</strong></span>
+                            <span style="font-size: 1.8rem; font-weight: 900; color: #fbbf24;" id="b-score-ming">0 分</span>
+                        </div>
+                        <div class="bar-container">
+                            <div class="bar-fill fill-ming" id="b-bar-ming"></div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 0.8rem; color: #94a3b8;">
+                            <span>戰力佔比</span>
+                            <span id="b-pct-ming" style="font-weight: bold; color: #fbbf24;">0%</span>
+                        </div>
+                    </div>
+
+                    <div class="battle-card shan" id="b-card-shan">
+                        <div class="crown-badge" id="crown-shan">👑 榜首領先</div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 1.8rem;">⛰️ <strong style="color: #60a5fa;">山學院</strong></span>
+                            <span style="font-size: 1.8rem; font-weight: 900; color: #60a5fa;" id="b-score-shan">0 分</span>
+                        </div>
+                        <div class="bar-container">
+                            <div class="bar-fill fill-shan" id="b-bar-shan"></div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 0.8rem; color: #94a3b8;">
+                            <span>戰力佔比</span>
+                            <span id="b-pct-shan" style="font-weight: bold; color: #60a5fa;">0%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-title" style="margin-top: 25px;">🎒 最新學生登錄紀錄榜</div>
                 <div class="student-grid" id="studentGrid"></div>
             </div>
         </div>
@@ -224,7 +329,6 @@
     </div>
 
     <script>
-        // 初始化 Firebase 設定
         const firebaseConfig = {
             databaseURL: "https://yms-sorting-app-default-rtdb.firebaseio.com"
         };
@@ -240,7 +344,6 @@
             event.target.classList.add('active');
         }
 
-        // 背景星空
         function createStars() {
             const container = document.getElementById('starsContainer');
             for(let i = 0; i < 50; i++) {
@@ -256,11 +359,10 @@
         }
         createStars();
 
-        // 學院資料
         const houses = {
-            yang: { name: '陽學院', badge: '☀️', motto: '熱情活力．勇於挑戰', tagBg: 'rgba(239,68,68,0.2)', tagColor: '#f87171', desc: '你擁有陽光般的熱情與豐沛的運動精神！在【陽學院】，你將與夥伴們一起勇於挑戰自我、鍛鍊身心，成為充滿行動力的陽明山國小代言人！' },
-            ming: { name: '明學院', badge: '💡', motto: '明辨是非．建立讀書好習慣', tagBg: 'rgba(245,158,11,0.2)', tagColor: '#fbbf24', desc: '你擁有聰慧的頭腦與喜愛學習的心！在【明學院】，你將學會明辨是非、培養良好的閱讀與學習習慣，以智慧引領新知！' },
-            shan: { name: '山學院', badge: '⛰️', motto: '穩重踏實．互助合作．成就彼此', tagBg: 'rgba(59,130,246,0.2)', tagColor: '#60a5fa', desc: '你擁有如山一般的穩重與值得信任的品格！在【山學院】，你將透過團隊合作、互助友愛來成就彼此，成為大家最堅實的後盾！' }
+            yang: { name: '陽學院', badge: '☀️', motto: '熱情活力．勇於挑戰', tagBg: 'rgba(239,68,68,0.2)', tagColor: '#f87171', desc: '你擁有陽光般的熱情與豐沛的運動精神！在【陽學院】，你將與夥伴們一起勇於挑戰自我！' },
+            ming: { name: '明學院', badge: '💡', motto: '明辨是非．愛學習', tagBg: 'rgba(245,158,11,0.2)', tagColor: '#fbbf24', desc: '你擁有聰慧的頭腦與喜愛學習的心！在【明學院】，你將培養良好的閱讀與學習習慣！' },
+            shan: { name: '山學院', badge: '⛰️', motto: '穩重踏實．互助合作', tagBg: 'rgba(59,130,246,0.2)', tagColor: '#60a5fa', desc: '你擁有如山一般的穩重與值得信任的品格！在【山學院】，你將透過團隊合作成就彼此！' }
         };
 
         const dialogues = [
@@ -273,11 +375,10 @@
 
         let historyData = [];
 
-        // 帶有搖晃動畫與遞延對話的分類帽抽籤
         function startSorting() {
             const nameInput = document.getElementById('studentName');
             const name = nameInput.value.trim();
-            if (!name) { alert('請先輸入學生姓名再進行分類儀式！'); return; }
+            if (!name) { alert('請先輸入學生姓名！'); return; }
 
             const sortBtn = document.getElementById('sortBtn');
             const hatBox = document.getElementById('hatBox');
@@ -294,9 +395,7 @@
 
             const dialogueInterval = setInterval(() => {
                 dialogueIndex++;
-                if (dialogueIndex < dialogues.length - 1) {
-                    dialogue.innerText = dialogues[dialogueIndex];
-                }
+                if (dialogueIndex < dialogues.length - 1) dialogue.innerText = dialogues[dialogueIndex];
             }, 650);
 
             setTimeout(() => {
@@ -307,7 +406,7 @@
                 const selectedKey = keys[Math.floor(Math.random() * keys.length)];
                 const house = houses[selectedKey];
 
-                dialogue.innerText = `「太棒了！不用懷疑，${name} 同學最適合——【${house.name}】！」`;
+                dialogue.innerText = `「太棒了！${name} 同學最適合——【${house.name}】！」`;
 
                 document.getElementById('houseBadge').innerText = house.badge;
                 document.getElementById('resStudentName').innerText = `${name} 同學`;
@@ -329,7 +428,7 @@
             historyData.unshift({
                 name: name,
                 houseKey: houseKey,
-                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             });
             updateHistoryUI();
         }
@@ -337,10 +436,7 @@
         function updateHistoryUI() {
             const listContainer = document.getElementById('historyList');
             if (historyData.length === 0) {
-                listContainer.innerHTML = '<div style="text-align: center; color: #64748b; padding: 15px;">尚無分類記錄，請輸入姓名開始抽籤！</div>';
-                document.getElementById('countYang').innerText = '0';
-                document.getElementById('countMing').innerText = '0';
-                document.getElementById('countShan').innerText = '0';
+                listContainer.innerHTML = '<div style="text-align: center; color: #64748b; padding: 15px;">尚無分類記錄</div>';
                 return;
             }
 
@@ -371,20 +467,16 @@
             }
         }
 
-        // --- Excel 範本下載 ---
         function downloadTemplate() {
             const templateData = [
                 { "班級": "四年甲班", "座號": "01", "學生姓名": "陳小明", "所屬學院": "陽學院", "表現/競賽事由": "校慶運動會大拉力賽", "成績/名次": "第一名", "獲給積分": 10, "紀錄教師/填表人": "王大同老師" }
             ];
-
             const worksheet = XLSX.utils.json_to_sheet(templateData);
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "成績紀錄填寫範本");
-            worksheet["!cols"] = [{ wch: 12 }, { wch: 8 }, { wch: 12 }, { wch: 12 }, { wch: 22 }, { wch: 12 }, { wch: 10 }, { wch: 15 }];
             XLSX.writeFile(workbook, "陽明山國小_學生成績與積分登錄範本.xlsx");
         }
 
-        // --- 教師批次上傳 ---
         function uploadExcel() {
             const fileInput = document.getElementById('excelFileInput');
             const file = fileInput.files[0];
@@ -431,7 +523,6 @@
             reader.readAsArrayBuffer(file);
         }
 
-        // --- 管理者專區 ---
         function unlockAdmin() {
             const pwd = document.getElementById('adminPassword').value;
             if (pwd === ADMIN_PASSWORD) {
@@ -461,12 +552,41 @@
             });
         }
 
-        // 雲端即時同步監聽
+        // 雲端即時同步與對抗爭霸儀表板計算
         db.ref('houseScores').on('value', (snapshot) => {
             const scores = snapshot.val() || { yang: 0, ming: 0, shan: 0 };
-            document.getElementById('h-score-yang').innerText = scores.yang || 0;
-            document.getElementById('h-score-ming').innerText = scores.ming || 0;
-            document.getElementById('h-score-shan').innerText = scores.shan || 0;
+            const y = scores.yang || 0;
+            const m = scores.ming || 0;
+            const s = scores.shan || 0;
+
+            // 1. 更新分數數字
+            document.getElementById('h-score-yang').innerText = y;
+            document.getElementById('h-score-ming').innerText = m;
+            document.getElementById('h-score-shan').innerText = s;
+
+            document.getElementById('b-score-yang').innerText = y + " 分";
+            document.getElementById('b-score-ming').innerText = m + " 分";
+            document.getElementById('b-score-shan').innerText = s + " 分";
+
+            // 2. 計算總分與進度條比例
+            const total = y + m + s;
+            const yPct = total > 0 ? Math.round((y / total) * 100) : 0;
+            const mPct = total > 0 ? Math.round((m / total) * 100) : 0;
+            const sPct = total > 0 ? Math.round((s / total) * 100) : 0;
+
+            document.getElementById('b-bar-yang').style.width = yPct + "%";
+            document.getElementById('b-bar-ming').style.width = mPct + "%";
+            document.getElementById('b-bar-shan').style.width = sPct + "%";
+
+            document.getElementById('b-pct-yang').innerText = yPct + "%";
+            document.getElementById('b-pct-ming').innerText = mPct + "%";
+            document.getElementById('b-pct-shan').innerText = sPct + "%";
+
+            // 3. 計算最高分並標示皇冠
+            const max = Math.max(y, m, s);
+            document.getElementById('crown-yang').style.display = (y === max && max > 0) ? 'block' : 'none';
+            document.getElementById('crown-ming').style.display = (m === max && max > 0) ? 'block' : 'none';
+            document.getElementById('crown-shan').style.display = (s === max && max > 0) ? 'block' : 'none';
         });
 
         db.ref('scoreRecords').on('value', (snapshot) => {
@@ -481,15 +601,19 @@
 
             grid.innerHTML = keys.slice(-12).reverse().map(k => {
                 const r = records[k];
+                let borderClass = "yang";
+                if (r.houseName && r.houseName.includes("明")) borderClass = "ming";
+                if (r.houseName && r.houseName.includes("山")) borderClass = "shan";
+
                 return `
-                    <div class="student-card">
+                    <div class="student-card" style="border-left: 6px solid var(--${borderClass}-red);">
                         <div class="card-top">
                             <span class="st-name">${r.name}</span>
                             <span class="st-class">${r.className}</span>
                         </div>
                         <div style="font-size:0.85rem; color:#cbd5e1; margin-bottom:8px;">${r.reason} (${r.rank})</div>
                         <div class="card-bottom">
-                            <span style="font-size:0.8rem; color:#94a3b8;">${r.teacher}</span>
+                            <span style="font-size:0.8rem; color:#94a3b8;">${r.houseName} · ${r.teacher}</span>
                             <span class="points-badge">+${r.points} 點</span>
                         </div>
                     </div>
