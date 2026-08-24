@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>陽明山國小 - 魔法榮譽制度管理系統 (競賽對抗版)</title>
+    <title>陽明山國小 - 魔法榮譽制度管理系統 (即時廣播版)</title>
     <style>
         :root {
             --yang-red: #ef4444;
@@ -64,40 +64,17 @@
             transition: transform 0.3s ease;
         }
 
-        .battle-card:hover { transform: translateY(-3px); }
         .battle-card.yang { border-color: var(--yang-red); }
         .battle-card.ming { border-color: var(--ming-yellow); }
         .battle-card.shan { border-color: var(--shan-blue); }
 
         .crown-badge {
-            position: absolute;
-            top: -12px;
-            right: 15px;
-            background: var(--magic-gold);
-            color: #0f172a;
-            font-size: 0.8rem;
-            font-weight: bold;
-            padding: 3px 10px;
-            border-radius: 12px;
-            box-shadow: 0 0 10px rgba(251, 191, 36, 0.6);
-            display: none;
+            position: absolute; top: -12px; right: 15px; background: var(--magic-gold); color: #0f172a;
+            font-size: 0.8rem; font-weight: bold; padding: 3px 10px; border-radius: 12px; box-shadow: 0 0 10px rgba(251, 191, 36, 0.6); display: none;
         }
 
-        .bar-container {
-            background: #1e293b;
-            height: 12px;
-            border-radius: 6px;
-            overflow: hidden;
-            margin-top: 12px;
-        }
-
-        .bar-fill {
-            height: 100%;
-            width: 0%;
-            transition: width 0.8s ease-in-out;
-            border-radius: 6px;
-        }
-
+        .bar-container { background: #1e293b; height: 12px; border-radius: 6px; overflow: hidden; margin-top: 12px; }
+        .bar-fill { height: 100%; width: 0%; transition: width 0.8s ease-in-out; border-radius: 6px; }
         .fill-yang { background: linear-gradient(90deg, #f87171, #ef4444); }
         .fill-ming { background: linear-gradient(90deg, #fde047, #f59e0b); }
         .fill-shan { background: linear-gradient(90deg, #60a5fa, #3b82f6); }
@@ -129,6 +106,37 @@
         .history-item { display: flex; justify-content: space-between; padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.9rem; align-items: center; }
         .tag { padding: 3px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; }
 
+        /* 即時實況動態廣播牆樣式 */
+        .live-feed-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 320px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .live-feed-item {
+            background: rgba(15, 23, 42, 0.9);
+            border-radius: 12px;
+            padding: 12px 16px;
+            border-left: 5px solid var(--magic-gold);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            animation: fadeInSlide 0.5s ease-out;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        @keyframes fadeInSlide {
+            0% { opacity: 0; transform: translateY(-10px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        .live-feed-item.yang { border-left-color: var(--yang-red); }
+        .live-feed-item.ming { border-left-color: var(--ming-yellow); }
+        .live-feed-item.shan { border-left-color: var(--shan-blue); }
+
         /* 卡片版面 */
         .student-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-top: 15px; }
         .student-card { background: #0f172a; border-radius: 12px; padding: 16px; border: 2px solid #334155; display: flex; flex-direction: column; justify-content: space-between; }
@@ -152,8 +160,8 @@
     <nav class="top-nav">
         <button class="nav-btn" onclick="switchTab('sorting')">🧙‍♂️ 魔法分類帽儀式</button>
         <button class="nav-btn" onclick="switchTab('import')">📤 教師成績上傳專區</button>
-        <button class="nav-btn active" onclick="switchTab('studentScores')">🎒 全校學生榮譽榜</button>
-        <button class="nav-btn" onclick="switchTab('houseScores')">🏆 學院總積分</button>
+        <button class="nav-btn" onclick="switchTab('studentScores')">🎒 全校學生榮譽榜</button>
+        <button class="nav-btn active" onclick="switchTab('houseScores')">🏆 學院總積分</button>
     </nav>
 
     <div class="main-container">
@@ -241,15 +249,14 @@
             </div>
         </div>
 
-        <!-- TAB 3: 全校學生榮譽榜 (新增學院對抗賽儀表板) -->
-        <div id="tab-studentScores" class="tab-content active">
+        <!-- TAB 3: 全校學生榮譽榜 -->
+        <div id="tab-studentScores" class="tab-content">
             <div class="panel">
                 <div class="panel-title">
                     <span>⚔️ 三大學院榮譽爭霸對抗賽</span>
                     <span class="sync-status">🟢 即時戰況連線中</span>
                 </div>
 
-                <!-- 學院對抗實時儀表板 -->
                 <div class="battle-dashboard">
                     <div class="battle-card yang" id="b-card-yang">
                         <div class="crown-badge" id="crown-yang">👑 榜首領先</div>
@@ -257,12 +264,9 @@
                             <span style="font-size: 1.8rem;">☀️ <strong style="color: #f87171;">陽學院</strong></span>
                             <span style="font-size: 1.8rem; font-weight: 900; color: #f87171;" id="b-score-yang">0 分</span>
                         </div>
-                        <div class="bar-container">
-                            <div class="bar-fill fill-yang" id="b-bar-yang"></div>
-                        </div>
+                        <div class="bar-container"><div class="bar-fill fill-yang" id="b-bar-yang"></div></div>
                         <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 0.8rem; color: #94a3b8;">
-                            <span>戰力佔比</span>
-                            <span id="b-pct-yang" style="font-weight: bold; color: #f87171;">0%</span>
+                            <span>戰力佔比</span><span id="b-pct-yang" style="font-weight: bold; color: #f87171;">0%</span>
                         </div>
                     </div>
 
@@ -272,12 +276,9 @@
                             <span style="font-size: 1.8rem;">💡 <strong style="color: #fbbf24;">明學院</strong></span>
                             <span style="font-size: 1.8rem; font-weight: 900; color: #fbbf24;" id="b-score-ming">0 分</span>
                         </div>
-                        <div class="bar-container">
-                            <div class="bar-fill fill-ming" id="b-bar-ming"></div>
-                        </div>
+                        <div class="bar-container"><div class="bar-fill fill-ming" id="b-bar-ming"></div></div>
                         <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 0.8rem; color: #94a3b8;">
-                            <span>戰力佔比</span>
-                            <span id="b-pct-ming" style="font-weight: bold; color: #fbbf24;">0%</span>
+                            <span>戰力佔比</span><span id="b-pct-ming" style="font-weight: bold; color: #fbbf24;">0%</span>
                         </div>
                     </div>
 
@@ -287,12 +288,9 @@
                             <span style="font-size: 1.8rem;">⛰️ <strong style="color: #60a5fa;">山學院</strong></span>
                             <span style="font-size: 1.8rem; font-weight: 900; color: #60a5fa;" id="b-score-shan">0 分</span>
                         </div>
-                        <div class="bar-container">
-                            <div class="bar-fill fill-shan" id="b-bar-shan"></div>
-                        </div>
+                        <div class="bar-container"><div class="bar-fill fill-shan" id="b-bar-shan"></div></div>
                         <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 0.8rem; color: #94a3b8;">
-                            <span>戰力佔比</span>
-                            <span id="b-pct-shan" style="font-weight: bold; color: #60a5fa;">0%</span>
+                            <span>戰力佔比</span><span id="b-pct-shan" style="font-weight: bold; color: #60a5fa;">0%</span>
                         </div>
                     </div>
                 </div>
@@ -302,26 +300,36 @@
             </div>
         </div>
 
-        <!-- TAB 4: 學院總積分 -->
-        <div id="tab-houseScores" class="tab-content">
+        <!-- TAB 4: 學院總積分 (新增下方的學生積分實況廣播牆) -->
+        <div id="tab-houseScores" class="tab-content active">
             <div class="panel">
                 <div class="panel-title">🏆 三大學院總積分排行榜</div>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; text-align: center;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; text-align: center; margin-bottom: 25px;">
                     <div style="background:#0f172a; padding:20px; border-radius:15px; border:2px solid var(--yang-red);">
                         <div style="font-size:2.5rem;">☀️</div>
                         <h2 style="color:#f87171;">陽學院</h2>
-                        <div style="font-size:3rem; font-weight:bold; color:#f87171; margin:10px 0;" id="h-score-yang">0</div>
+                        <div style="font-size:3.5rem; font-weight:bold; color:#f87171; margin:10px 0;" id="h-score-yang">0</div>
                     </div>
                     <div style="background:#0f172a; padding:20px; border-radius:15px; border:2px solid var(--ming-yellow);">
                         <div style="font-size:2.5rem;">💡</div>
                         <h2 style="color:#fbbf24;">明學院</h2>
-                        <div style="font-size:3rem; font-weight:bold; color:#fbbf24; margin:10px 0;" id="h-score-ming">0</div>
+                        <div style="font-size:3.5rem; font-weight:bold; color:#fbbf24; margin:10px 0;" id="h-score-ming">0</div>
                     </div>
                     <div style="background:#0f172a; padding:20px; border-radius:15px; border:2px solid var(--shan-blue);">
                         <div style="font-size:2.5rem;">⛰️</div>
                         <h2 style="color:#60a5fa;">山學院</h2>
-                        <div style="font-size:3rem; font-weight:bold; color:#60a5fa; margin:10px 0;" id="h-score-shan">0</div>
+                        <div style="font-size:3.5rem; font-weight:bold; color:#60a5fa; margin:10px 0;" id="h-score-shan">0</div>
                     </div>
+                </div>
+
+                <!-- ✨ 新增：學生獲得積分即時實況動態牆 -->
+                <div class="panel-title" style="margin-top: 15px; font-size: 1.15rem;">
+                    <span>⚡ 學生獲取積分即時實況廣播 (Live Stream)</span>
+                    <span class="sync-status">🔴 Live 雲端連線</span>
+                </div>
+                
+                <div class="live-feed-container" id="liveFeedList">
+                    <div style="text-align: center; color: #64748b; padding: 20px;">尚無即時獲分廣播訊息</div>
                 </div>
             </div>
         </div>
@@ -552,14 +560,13 @@
             });
         }
 
-        // 雲端即時同步與對抗爭霸儀表板計算
+        // 雲端監聽與即時廣播發射
         db.ref('houseScores').on('value', (snapshot) => {
             const scores = snapshot.val() || { yang: 0, ming: 0, shan: 0 };
             const y = scores.yang || 0;
             const m = scores.ming || 0;
             const s = scores.shan || 0;
 
-            // 1. 更新分數數字
             document.getElementById('h-score-yang').innerText = y;
             document.getElementById('h-score-ming').innerText = m;
             document.getElementById('h-score-shan').innerText = s;
@@ -568,7 +575,6 @@
             document.getElementById('b-score-ming').innerText = m + " 分";
             document.getElementById('b-score-shan').innerText = s + " 分";
 
-            // 2. 計算總分與進度條比例
             const total = y + m + s;
             const yPct = total > 0 ? Math.round((y / total) * 100) : 0;
             const mPct = total > 0 ? Math.round((m / total) * 100) : 0;
@@ -582,43 +588,70 @@
             document.getElementById('b-pct-ming').innerText = mPct + "%";
             document.getElementById('b-pct-shan').innerText = sPct + "%";
 
-            // 3. 計算最高分並標示皇冠
             const max = Math.max(y, m, s);
             document.getElementById('crown-yang').style.display = (y === max && max > 0) ? 'block' : 'none';
             document.getElementById('crown-ming').style.display = (m === max && max > 0) ? 'block' : 'none';
             document.getElementById('crown-shan').style.display = (s === max && max > 0) ? 'block' : 'none';
         });
 
+        // 監聽歷史獲得積分，即時更新廣播牆
         db.ref('scoreRecords').on('value', (snapshot) => {
             const records = snapshot.val() || {};
             const keys = Object.keys(records);
+            
+            // 1. 更新全校學生榮譽榜
             const grid = document.getElementById('studentGrid');
-
             if (keys.length === 0) {
                 grid.innerHTML = '<div style="color: #94a3b8; text-align: center; grid-column: 1/-1;">資料庫目前無紀錄</div>';
-                return;
+            } else {
+                grid.innerHTML = keys.slice(-12).reverse().map(k => {
+                    const r = records[k];
+                    let borderClass = "yang";
+                    if (r.houseName && r.houseName.includes("明")) borderClass = "ming";
+                    if (r.houseName && r.houseName.includes("山")) borderClass = "shan";
+
+                    return `
+                        <div class="student-card" style="border-left: 6px solid var(--${borderClass}-red);">
+                            <div class="card-top">
+                                <span class="st-name">${r.name}</span>
+                                <span class="st-class">${r.className}</span>
+                            </div>
+                            <div style="font-size:0.85rem; color:#cbd5e1; margin-bottom:8px;">${r.reason} (${r.rank})</div>
+                            <div class="card-bottom">
+                                <span style="font-size:0.8rem; color:#94a3b8;">${r.houseName} · ${r.teacher}</span>
+                                <span class="points-badge">+${r.points} 點</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
             }
 
-            grid.innerHTML = keys.slice(-12).reverse().map(k => {
-                const r = records[k];
-                let borderClass = "yang";
-                if (r.houseName && r.houseName.includes("明")) borderClass = "ming";
-                if (r.houseName && r.houseName.includes("山")) borderClass = "shan";
+            // 2. ✨ 即時更新學院分數下方的「學生獲得積分動態廣播牆」
+            const liveFeed = document.getElementById('liveFeedList');
+            if (keys.length === 0) {
+                liveFeed.innerHTML = '<div style="text-align: center; color: #64748b; padding: 20px;">尚無即時獲分廣播訊息</div>';
+            } else {
+                liveFeed.innerHTML = keys.slice(-10).reverse().map(k => {
+                    const r = records[k];
+                    let houseClass = "yang";
+                    let houseBadge = "☀️";
+                    if (r.houseName && r.houseName.includes("明")) { houseClass = "ming"; houseBadge = "💡"; }
+                    if (r.houseName && r.houseName.includes("山")) { houseClass = "shan"; houseBadge = "⛰️"; }
 
-                return `
-                    <div class="student-card" style="border-left: 6px solid var(--${borderClass}-red);">
-                        <div class="card-top">
-                            <span class="st-name">${r.name}</span>
-                            <span class="st-class">${r.className}</span>
+                    return `
+                        <div class="live-feed-item ${houseClass}">
+                            <div>
+                                <span style="font-weight:bold; color:#fff; font-size:1.05rem;">${r.className} ${r.name}</span>
+                                <span style="font-size:0.82rem; color:#cbd5e1; margin-left:8px;">在「${r.reason}」獲得 ${r.rank}</span>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <span style="font-size:0.85rem; font-weight:bold; color:var(--magic-gold);">${houseBadge} ${r.houseName}</span>
+                                <span style="font-weight:900; color:#22c55e; font-size:1.2rem;">+${r.points} 分</span>
+                            </div>
                         </div>
-                        <div style="font-size:0.85rem; color:#cbd5e1; margin-bottom:8px;">${r.reason} (${r.rank})</div>
-                        <div class="card-bottom">
-                            <span style="font-size:0.8rem; color:#94a3b8;">${r.houseName} · ${r.teacher}</span>
-                            <span class="points-badge">+${r.points} 點</span>
-                        </div>
-                    </div>
-                `;
-            }).join('');
+                    `;
+                }).join('');
+            }
         });
     </script>
 </body>
