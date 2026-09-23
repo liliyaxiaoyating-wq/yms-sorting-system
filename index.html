@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>陽明山國小 - 魔法榮譽制度管理系統 (即時廣播版)</title>
+    <title>陽明山國小 - 魔法榮譽制度管理系統 (年級平衡版)</title>
     <style>
         :root {
             --yang-red: #ef4444;
@@ -19,7 +19,6 @@
             color: #f8fafc; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 20px 10px; overflow-x: hidden; 
         }
 
-        /* 背景星空動畫 */
         .stars { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
         .star { position: absolute; background: white; border-radius: 50%; animation: twinkle var(--duration) infinite ease-in-out; }
         @keyframes twinkle { 0%, 100% { opacity: 0.2; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.2); } }
@@ -38,6 +37,7 @@
 
         .btn-action { background: #f59e0b; color: #0f172a; font-weight: bold; padding: 10px 18px; border: none; border-radius: 10px; cursor: pointer; font-size: 0.95rem; display: inline-flex; align-items: center; gap: 6px; transition: transform 0.1s, opacity 0.2s; }
         .btn-action:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-action:disabled { background: #475569; cursor: not-allowed; transform: none; }
         .btn-green { background: #10b981; color: white; }
         .btn-blue { background: #3b82f6; color: white; }
         .btn-purple { background: #8b5cf6; color: white; }
@@ -45,39 +45,6 @@
         input[type="text"], input[type="password"], input[type="file"], select {
             padding: 10px 14px; border-radius: 10px; border: 1px solid #475569; background: #0f172a; color: #fff; font-size: 0.95rem; outline: none;
         }
-
-        /* 競賽對抗儀表板樣式 */
-        .battle-dashboard {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 18px;
-            margin-bottom: 25px;
-        }
-
-        .battle-card {
-            background: #0f172a;
-            border-radius: 16px;
-            padding: 20px;
-            position: relative;
-            border: 2px solid #334155;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
-            transition: transform 0.3s ease;
-        }
-
-        .battle-card.yang { border-color: var(--yang-red); }
-        .battle-card.ming { border-color: var(--ming-yellow); }
-        .battle-card.shan { border-color: var(--shan-blue); }
-
-        .crown-badge {
-            position: absolute; top: -12px; right: 15px; background: var(--magic-gold); color: #0f172a;
-            font-size: 0.8rem; font-weight: bold; padding: 3px 10px; border-radius: 12px; box-shadow: 0 0 10px rgba(251, 191, 36, 0.6); display: none;
-        }
-
-        .bar-container { background: #1e293b; height: 12px; border-radius: 6px; overflow: hidden; margin-top: 12px; }
-        .bar-fill { height: 100%; width: 0%; transition: width 0.8s ease-in-out; border-radius: 6px; }
-        .fill-yang { background: linear-gradient(90deg, #f87171, #ef4444); }
-        .fill-ming { background: linear-gradient(90deg, #fde047, #f59e0b); }
-        .fill-shan { background: linear-gradient(90deg, #60a5fa, #3b82f6); }
 
         /* 可愛分類帽動畫組件 */
         .sorting-hat-box { position: relative; width: 160px; height: 160px; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; }
@@ -95,56 +62,18 @@
         .result-card { display: none; border-radius: 16px; padding: 25px; margin-top: 15px; animation: popIn 0.5s ease forwards; background: #0f172a; border: 2px solid var(--magic-gold); text-align: center; }
         @keyframes popIn { 0% { opacity: 0; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1); } }
 
-        /* 人數統計與歷程 */
-        .stats-pills { display: flex; gap: 10px; margin-bottom: 12px; }
-        .pill { flex: 1; padding: 8px 10px; border-radius: 8px; font-size: 0.85rem; text-align: center; font-weight: bold; }
-        .pill-yang { background: rgba(239, 68, 68, 0.2); border: 1px solid var(--yang-red); color: #f87171; }
-        .pill-ming { background: rgba(245, 158, 11, 0.2); border: 1px solid var(--ming-yellow); color: #fbbf24; }
-        .pill-shan { background: rgba(59, 130, 246, 0.2); border: 1px solid var(--shan-blue); color: #60a5fa; }
+        /* 人數與年級分佈表格 */
+        .grade-table {
+            width: 100%; border-collapse: collapse; margin-top: 10px; background: rgba(15, 23, 42, 0.6); border-radius: 10px; overflow: hidden;
+        }
+        .grade-table th, .grade-table td {
+            padding: 8px 12px; text-align: center; border: 1px solid rgba(255,255,255,0.08); font-size: 0.88rem;
+        }
+        .grade-table th { background: rgba(30, 41, 59, 0.8); color: var(--magic-gold); font-weight: bold; }
 
-        .history-list { max-height: 180px; overflow-y: auto; background: rgba(15, 23, 42, 0.6); border-radius: 10px; padding: 10px; }
+        .history-list { max-height: 180px; overflow-y: auto; background: rgba(15, 23, 42, 0.6); border-radius: 10px; padding: 10px; margin-top: 12px; }
         .history-item { display: flex; justify-content: space-between; padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.9rem; align-items: center; }
         .tag { padding: 3px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; }
-
-        /* 即時實況動態廣播牆樣式 */
-        .live-feed-container {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            max-height: 320px;
-            overflow-y: auto;
-            padding-right: 5px;
-        }
-
-        .live-feed-item {
-            background: rgba(15, 23, 42, 0.9);
-            border-radius: 12px;
-            padding: 12px 16px;
-            border-left: 5px solid var(--magic-gold);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            animation: fadeInSlide 0.5s ease-out;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        }
-
-        @keyframes fadeInSlide {
-            0% { opacity: 0; transform: translateY(-10px); }
-            100% { opacity: 1; transform: translateY(0); }
-        }
-
-        .live-feed-item.yang { border-left-color: var(--yang-red); }
-        .live-feed-item.ming { border-left-color: var(--ming-yellow); }
-        .live-feed-item.shan { border-left-color: var(--shan-blue); }
-
-        /* 卡片版面 */
-        .student-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-top: 15px; }
-        .student-card { background: #0f172a; border-radius: 12px; padding: 16px; border: 2px solid #334155; display: flex; flex-direction: column; justify-content: space-between; }
-        .card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .st-name { font-size: 1.15rem; font-weight: bold; color: #fff; }
-        .st-class { font-size: 0.85rem; color: #94a3b8; background: #1e293b; padding: 3px 8px; border-radius: 6px; }
-        .card-bottom { display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 10px 12px; border-radius: 8px; }
-        .points-badge { font-size: 1.3rem; font-weight: bold; color: var(--magic-gold); }
 
         .sync-status { font-size: 0.85rem; color: #22c55e; margin-left: auto; display: inline-flex; align-items: center; gap: 5px; }
     </style>
@@ -158,31 +87,37 @@
     <div class="stars" id="starsContainer"></div>
 
     <nav class="top-nav">
-        <button class="nav-btn" onclick="switchTab('sorting')">🧙‍♂️ 魔法分類帽儀式</button>
+        <button class="nav-btn active" onclick="switchTab('sorting')">🧙‍♂️ 魔法分類帽儀式</button>
         <button class="nav-btn" onclick="switchTab('import')">📤 教師成績上傳專區</button>
         <button class="nav-btn" onclick="switchTab('studentScores')">🎒 全校學生榮譽榜</button>
-        <button class="nav-btn active" onclick="switchTab('houseScores')">🏆 學院總積分</button>
+        <button class="nav-btn" onclick="switchTab('houseScores')">🏆 學院總積分</button>
     </nav>
 
     <div class="main-container">
 
-        <!-- TAB 1: 可愛魔法分類帽 -->
-        <div id="tab-sorting" class="tab-content">
+        <!-- TAB 1: 可愛魔法分類帽 (含年級平衡) -->
+        <div id="tab-sorting" class="tab-content active">
             <div class="panel" style="text-align: center;">
                 <h1 style="color: var(--magic-gold); margin-bottom: 8px; font-size: 2.2rem;">陽明山國小 魔法分類帽</h1>
-                <p style="color: #94a3b8; margin-bottom: 20px;">「草山之好．知行合一」全校榮譽制度學院抽籤儀式</p>
+                <p style="color: #94a3b8; margin-bottom: 20px;">「草山之好．知行合一」年級平衡公平抽籤儀式</p>
 
                 <div class="sorting-hat-box" id="hatBox">
                     <div class="sorting-hat-icon">🧙‍♂️</div>
                 </div>
 
-                <div style="max-width: 420px; margin: 0 auto 20px; display: flex; gap: 10px;">
-                    <input type="text" id="studentName" placeholder="請輸入學生姓名..." autocomplete="off" style="flex:1;">
+                <!-- 輸入區：新增【年級段】選擇 -->
+                <div style="max-width: 520px; margin: 0 auto 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+                    <select id="studentGrade" style="flex: 1; min-width: 140px;">
+                        <option value="low">低年級 (一、二年級)</option>
+                        <option value="mid">中年級 (三、四年級)</option>
+                        <option value="high">高年級 (五、六年級)</option>
+                    </select>
+                    <input type="text" id="studentName" placeholder="請輸入學生姓名..." autocomplete="off" style="flex: 1.5; min-width: 160px;">
                     <button class="btn-action" id="sortBtn" onclick="startSorting()">戴上分類帽！</button>
                 </div>
 
                 <div id="dialogue" style="background: rgba(15, 23, 42, 0.6); padding: 15px; border-radius: 12px; color: #cbd5e1; font-style: italic; border-left: 4px solid var(--magic-gold); min-height: 55px; display: flex; align-items: center; justify-content: center;">
-                    「嗯... 讓我看看，你的心中隱藏著什麼樣的光芒與潛力？」
+                    「嗯... 讓我看看，你的年級與心中隱藏著什麼樣的光芒與潛力？」
                 </div>
 
                 <div class="result-card" id="resultCard">
@@ -193,20 +128,50 @@
                     <p id="houseDesc" style="color: #e2e8f0; font-size: 0.95rem; background: rgba(0,0,0,0.3); padding: 12px; border-radius: 10px; line-height: 1.6;"></p>
                 </div>
 
+                <!-- 各年級在三院的分佈即時統計表 -->
                 <div style="margin-top: 30px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px; text-align: left;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                        <span style="font-weight: bold; color: var(--magic-gold); font-size: 1.1rem;">📜 分類記錄與人數統計</span>
-                        <button class="btn-action" style="padding: 4px 10px; font-size: 0.8rem;" onclick="clearHistory()">重置記錄</button>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <span style="font-weight: bold; color: var(--magic-gold); font-size: 1.1rem;">📊 低/中/高年級 學院人數平衡統計表</span>
+                        <span class="sync-status">🟢 雲端同步平衡中</span>
                     </div>
 
-                    <div class="stats-pills">
-                        <div class="pill pill-yang">陽學院：<span id="countYang">0</span> 人</div>
-                        <div class="pill pill-ming">明學院：<span id="countMing">0</span> 人</div>
-                        <div class="pill pill-shan">山學院：<span id="countShan">0</span> 人</div>
-                    </div>
+                    <table class="grade-table">
+                        <thead>
+                            <tr>
+                                <th>年級階段</th>
+                                <th style="color:#f87171;">☀️ 陽學院</th>
+                                <th style="color:#fbbf24;">💡 明學院</th>
+                                <th style="color:#60a5fa;">⛰️ 山學院</th>
+                                <th>年級小計</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>低年級 (一二年級)</strong></td>
+                                <td id="count-low-yang">0</td>
+                                <td id="count-low-ming">0</td>
+                                <td id="count-low-shan">0</td>
+                                <td id="total-low" style="font-weight:bold;">0</td>
+                            </tr>
+                            <tr>
+                                <td><strong>中年級 (三四年級)</strong></td>
+                                <td id="count-mid-yang">0</td>
+                                <td id="count-mid-ming">0</td>
+                                <td id="count-mid-shan">0</td>
+                                <td id="total-mid" style="font-weight:bold;">0</td>
+                            </tr>
+                            <tr>
+                                <td><strong>高年級 (五六年級)</strong></td>
+                                <td id="count-high-yang">0</td>
+                                <td id="count-high-ming">0</td>
+                                <td id="count-high-shan">0</td>
+                                <td id="total-high" style="font-weight:bold;">0</td>
+                            </tr>
+                        </tbody>
+                    </table>
 
                     <div class="history-list" id="historyList">
-                        <div style="text-align: center; color: #64748b; padding: 15px;">尚無分類記錄，請輸入姓名開始抽籤！</div>
+                        <div style="text-align: center; color: #64748b; padding: 15px;">尚無分類記錄，請選擇年級並輸入姓名開始抽籤！</div>
                     </div>
                 </div>
             </div>
@@ -252,59 +217,16 @@
         <!-- TAB 3: 全校學生榮譽榜 -->
         <div id="tab-studentScores" class="tab-content">
             <div class="panel">
-                <div class="panel-title">
-                    <span>⚔️ 三大學院榮譽爭霸對抗賽</span>
-                    <span class="sync-status">🟢 即時戰況連線中</span>
-                </div>
-
-                <div class="battle-dashboard">
-                    <div class="battle-card yang" id="b-card-yang">
-                        <div class="crown-badge" id="crown-yang">👑 榜首領先</div>
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <span style="font-size: 1.8rem;">☀️ <strong style="color: #f87171;">陽學院</strong></span>
-                            <span style="font-size: 1.8rem; font-weight: 900; color: #f87171;" id="b-score-yang">0 分</span>
-                        </div>
-                        <div class="bar-container"><div class="bar-fill fill-yang" id="b-bar-yang"></div></div>
-                        <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 0.8rem; color: #94a3b8;">
-                            <span>戰力佔比</span><span id="b-pct-yang" style="font-weight: bold; color: #f87171;">0%</span>
-                        </div>
-                    </div>
-
-                    <div class="battle-card ming" id="b-card-ming">
-                        <div class="crown-badge" id="crown-ming">👑 榜首領先</div>
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <span style="font-size: 1.8rem;">💡 <strong style="color: #fbbf24;">明學院</strong></span>
-                            <span style="font-size: 1.8rem; font-weight: 900; color: #fbbf24;" id="b-score-ming">0 分</span>
-                        </div>
-                        <div class="bar-container"><div class="bar-fill fill-ming" id="b-bar-ming"></div></div>
-                        <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 0.8rem; color: #94a3b8;">
-                            <span>戰力佔比</span><span id="b-pct-ming" style="font-weight: bold; color: #fbbf24;">0%</span>
-                        </div>
-                    </div>
-
-                    <div class="battle-card shan" id="b-card-shan">
-                        <div class="crown-badge" id="crown-shan">👑 榜首領先</div>
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <span style="font-size: 1.8rem;">⛰️ <strong style="color: #60a5fa;">山學院</strong></span>
-                            <span style="font-size: 1.8rem; font-weight: 900; color: #60a5fa;" id="b-score-shan">0 分</span>
-                        </div>
-                        <div class="bar-container"><div class="bar-fill fill-shan" id="b-bar-shan"></div></div>
-                        <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 0.8rem; color: #94a3b8;">
-                            <span>戰力佔比</span><span id="b-pct-shan" style="font-weight: bold; color: #60a5fa;">0%</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="panel-title" style="margin-top: 25px;">🎒 最新學生登錄紀錄榜</div>
+                <div class="panel-title">🎒 最新學生登錄紀錄榜</div>
                 <div class="student-grid" id="studentGrid"></div>
             </div>
         </div>
 
-        <!-- TAB 4: 學院總積分 (新增下方的學生積分實況廣播牆) -->
-        <div id="tab-houseScores" class="tab-content active">
+        <!-- TAB 4: 學院總積分 -->
+        <div id="tab-houseScores" class="tab-content">
             <div class="panel">
                 <div class="panel-title">🏆 三大學院總積分排行榜</div>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; text-align: center; margin-bottom: 25px;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; text-align: center;">
                     <div style="background:#0f172a; padding:20px; border-radius:15px; border:2px solid var(--yang-red);">
                         <div style="font-size:2.5rem;">☀️</div>
                         <h2 style="color:#f87171;">陽學院</h2>
@@ -320,16 +242,6 @@
                         <h2 style="color:#60a5fa;">山學院</h2>
                         <div style="font-size:3.5rem; font-weight:bold; color:#60a5fa; margin:10px 0;" id="h-score-shan">0</div>
                     </div>
-                </div>
-
-                <!-- ✨ 新增：學生獲得積分即時實況動態牆 -->
-                <div class="panel-title" style="margin-top: 15px; font-size: 1.15rem;">
-                    <span>⚡ 學生獲取積分即時實況廣播 (Live Stream)</span>
-                    <span class="sync-status">🔴 Live 雲端連線</span>
-                </div>
-                
-                <div class="live-feed-container" id="liveFeedList">
-                    <div style="text-align: center; color: #64748b; padding: 20px;">尚無即時獲分廣播訊息</div>
                 </div>
             </div>
         </div>
@@ -368,10 +280,83 @@
         createStars();
 
         const houses = {
-            yang: { name: '陽學院', badge: '☀️', motto: '熱情活力．勇於挑戰', tagBg: 'rgba(239,68,68,0.2)', tagColor: '#f87171', desc: '你擁有陽光般的熱情與豐沛的運動精神！在【陽學院】，你將與夥伴們一起勇於挑戰自我！' },
-            ming: { name: '明學院', badge: '💡', motto: '明辨是非．愛學習', tagBg: 'rgba(245,158,11,0.2)', tagColor: '#fbbf24', desc: '你擁有聰慧的頭腦與喜愛學習的心！在【明學院】，你將培養良好的閱讀與學習習慣！' },
-            shan: { name: '山學院', badge: '⛰️', motto: '穩重踏實．互助合作', tagBg: 'rgba(59,130,246,0.2)', tagColor: '#60a5fa', desc: '你擁有如山一般的穩重與值得信任的品格！在【山學院】，你將透過團隊合作成就彼此！' }
+            yang: { name: '陽學院', badge: '☀️', motto: '熱情活力．勇於挑戰', tagBg: 'rgba(239,68,68,0.2)', tagColor: '#f87171', desc: '你擁有陽光般的熱情與豐沛的運動精神！在【陽學院】，你將與夥伴們一起勇於挑戰自我、鍛鍊身心！' },
+            ming: { name: '明學院', badge: '💡', motto: '明辨是非．建立讀書好習慣', tagBg: 'rgba(245,158,11,0.2)', tagColor: '#fbbf24', desc: '你擁有聰慧的頭腦與喜愛學習的心！在【明學院】，你將學會明辨是非、培養良好的閱讀習慣！' },
+            shan: { name: '山學院', badge: '⛰️', motto: '穩重踏實．互助合作．成就彼此', tagBg: 'rgba(59,130,246,0.2)', tagColor: '#60a5fa', desc: '你擁有如山一般的穩重與值得信任的品格！在【山學院】，你將透過團隊合作成就彼此！' }
         };
+
+        const gradeLabels = { low: '低年級', mid: '中年級', high: '高年級' };
+
+        // 雲端即時追蹤各年級在三院的人數矩陣
+        let gradeCounts = {
+            low: { yang: 0, ming: 0, shan: 0 },
+            mid: { yang: 0, ming: 0, shan: 0 },
+            high: { yang: 0, ming: 0, shan: 0 }
+        };
+
+        // 監聽雲端分類紀錄並更新年級矩陣
+        db.ref('sortingRecords').on('value', (snapshot) => {
+            const records = snapshot.val() || {};
+            
+            // 重置計數
+            gradeCounts = {
+                low: { yang: 0, ming: 0, shan: 0 },
+                mid: { yang: 0, ming: 0, shan: 0 },
+                high: { yang: 0, ming: 0, shan: 0 }
+            };
+
+            const historyList = [];
+            Object.keys(records).forEach(key => {
+                const r = records[key];
+                if (r.grade && r.houseKey && gradeCounts[r.grade]) {
+                    gradeCounts[r.grade][r.houseKey]++;
+                    historyList.unshift(r);
+                }
+            });
+
+            // 更新 UI 表格
+            ['low', 'mid', 'high'].forEach(g => {
+                const y = gradeCounts[g].yang;
+                const m = gradeCounts[g].ming;
+                const s = gradeCounts[g].shan;
+                document.getElementById(`count-${g}-yang`).innerText = y;
+                document.getElementById(`count-${g}-ming`).innerText = m;
+                document.getElementById(`count-${g}-shan`).innerText = s;
+                document.getElementById(`total-${g}`).innerText = y + m + s;
+            });
+
+            // 更新下方簡易歷程
+            const listContainer = document.getElementById('historyList');
+            if (historyList.length === 0) {
+                listContainer.innerHTML = '<div style="text-align: center; color: #64748b; padding: 15px;">尚無分類記錄，請選擇年級並輸入姓名開始抽籤！</div>';
+            } else {
+                listContainer.innerHTML = historyList.slice(0, 15).map(item => {
+                    const house = houses[item.houseKey];
+                    return `
+                        <div class="history-item">
+                            <span><strong>${item.name}</strong> (${gradeLabels[item.grade]})</span>
+                            <span class="tag" style="background:${house.tagBg}; color:${house.tagColor};">${house.badge} ${house.name}</span>
+                            <span style="color:#64748b; font-size:0.8rem;">${item.time}</span>
+                        </div>
+                    `;
+                }).join('');
+            }
+        });
+
+        // ⭐ 智慧年級動態平衡抽籤演算法 ⭐
+        function getBalancedHouse(grade) {
+            const counts = gradeCounts[grade]; // 取得該年級目前在 陽、明、山 的人數
+            const minCount = Math.min(counts.yang, counts.ming, counts.shan);
+            
+            // 找出該年級目前人數最少的學院候選名單
+            const candidates = [];
+            if (counts.yang === minCount) candidates.push('yang');
+            if (counts.ming === minCount) candidates.push('ming');
+            if (counts.shan === minCount) candidates.push('shan');
+
+            // 從人數最少的候選學院中，隨機選出一個
+            return candidates[Math.floor(Math.random() * candidates.length)];
+        }
 
         const dialogues = [
             "「嗯... 讓我仔細瞧瞧... 你的眼神中流露出不可思議的特質...」",
@@ -381,12 +366,12 @@
             "「哈哈！我知道了，最適合你的學院絕對是——」"
         ];
 
-        let historyData = [];
-
         function startSorting() {
             const nameInput = document.getElementById('studentName');
             const name = nameInput.value.trim();
-            if (!name) { alert('請先輸入學生姓名！'); return; }
+            const grade = document.getElementById('studentGrade').value;
+
+            if (!name) { alert('請先輸入學生姓名再進行分類儀式！'); return; }
 
             const sortBtn = document.getElementById('sortBtn');
             const hatBox = document.getElementById('hatBox');
@@ -410,69 +395,28 @@
                 clearInterval(dialogueInterval);
                 hatBox.classList.remove('animating');
 
-                const keys = ['yang', 'ming', 'shan'];
-                const selectedKey = keys[Math.floor(Math.random() * keys.length)];
+                // 使用智慧年級平衡演算法選出學院
+                const selectedKey = getBalancedHouse(grade);
                 const house = houses[selectedKey];
 
-                dialogue.innerText = `「太棒了！${name} 同學最適合——【${house.name}】！」`;
+                dialogue.innerText = `「太棒了！不用懷疑，${gradeLabels[grade]}的 ${name} 同學最適合——【${house.name}】！」`;
 
                 document.getElementById('houseBadge').innerText = house.badge;
-                document.getElementById('resStudentName').innerText = `${name} 同學`;
+                document.getElementById('resStudentName').innerText = `${gradeLabels[grade]} ${name} 同學`;
                 document.getElementById('houseTitle').innerText = house.name;
                 document.getElementById('houseMotto').innerText = house.motto;
                 document.getElementById('houseDesc').innerText = house.desc;
 
                 resultCard.style.display = 'block';
 
-                addHistory(name, selectedKey);
+                // 寫入雲端紀錄
+                const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                db.ref('sortingRecords').push({ name, grade, houseKey: selectedKey, time });
 
                 sortBtn.disabled = false;
                 nameInput.disabled = false;
                 nameInput.value = '';
             }, 3200);
-        }
-
-        function addHistory(name, houseKey) {
-            historyData.unshift({
-                name: name,
-                houseKey: houseKey,
-                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            });
-            updateHistoryUI();
-        }
-
-        function updateHistoryUI() {
-            const listContainer = document.getElementById('historyList');
-            if (historyData.length === 0) {
-                listContainer.innerHTML = '<div style="text-align: center; color: #64748b; padding: 15px;">尚無分類記錄</div>';
-                return;
-            }
-
-            let yangCount = 0, mingCount = 0, shanCount = 0;
-            listContainer.innerHTML = historyData.map(item => {
-                if (item.houseKey === 'yang') yangCount++;
-                if (item.houseKey === 'ming') mingCount++;
-                if (item.houseKey === 'shan') shanCount++;
-                const house = houses[item.houseKey];
-                return `
-                    <div class="history-item">
-                        <span><strong>${item.name}</strong></span>
-                        <span class="tag" style="background:${house.tagBg}; color:${house.tagColor};">${house.badge} ${house.name}</span>
-                        <span style="color:#64748b; font-size:0.8rem;">${item.time}</span>
-                    </div>
-                `;
-            }).join('');
-
-            document.getElementById('countYang').innerText = yangCount;
-            document.getElementById('countMing').innerText = mingCount;
-            document.getElementById('countShan').innerText = shanCount;
-        }
-
-        function clearHistory() {
-            if (confirm('確定要清空分類紀錄與統計數據嗎？')) {
-                historyData = [];
-                updateHistoryUI();
-            }
         }
 
         function downloadTemplate() {
@@ -560,98 +504,41 @@
             });
         }
 
-        // 雲端監聽與即時廣播發射
+        // 雲端監聽學院總分
         db.ref('houseScores').on('value', (snapshot) => {
             const scores = snapshot.val() || { yang: 0, ming: 0, shan: 0 };
-            const y = scores.yang || 0;
-            const m = scores.ming || 0;
-            const s = scores.shan || 0;
-
-            document.getElementById('h-score-yang').innerText = y;
-            document.getElementById('h-score-ming').innerText = m;
-            document.getElementById('h-score-shan').innerText = s;
-
-            document.getElementById('b-score-yang').innerText = y + " 分";
-            document.getElementById('b-score-ming').innerText = m + " 分";
-            document.getElementById('b-score-shan').innerText = s + " 分";
-
-            const total = y + m + s;
-            const yPct = total > 0 ? Math.round((y / total) * 100) : 0;
-            const mPct = total > 0 ? Math.round((m / total) * 100) : 0;
-            const sPct = total > 0 ? Math.round((s / total) * 100) : 0;
-
-            document.getElementById('b-bar-yang').style.width = yPct + "%";
-            document.getElementById('b-bar-ming').style.width = mPct + "%";
-            document.getElementById('b-bar-shan').style.width = sPct + "%";
-
-            document.getElementById('b-pct-yang').innerText = yPct + "%";
-            document.getElementById('b-pct-ming').innerText = mPct + "%";
-            document.getElementById('b-pct-shan').innerText = sPct + "%";
-
-            const max = Math.max(y, m, s);
-            document.getElementById('crown-yang').style.display = (y === max && max > 0) ? 'block' : 'none';
-            document.getElementById('crown-ming').style.display = (m === max && max > 0) ? 'block' : 'none';
-            document.getElementById('crown-shan').style.display = (s === max && max > 0) ? 'block' : 'none';
+            document.getElementById('h-score-yang').innerText = scores.yang || 0;
+            document.getElementById('h-score-ming').innerText = scores.ming || 0;
+            document.getElementById('h-score-shan').innerText = scores.shan || 0;
         });
 
-        // 監聽歷史獲得積分，即時更新廣播牆
+        // 監聽學生榮譽榜
         db.ref('scoreRecords').on('value', (snapshot) => {
             const records = snapshot.val() || {};
             const keys = Object.keys(records);
-            
-            // 1. 更新全校學生榮譽榜
             const grid = document.getElementById('studentGrid');
+
             if (keys.length === 0) {
                 grid.innerHTML = '<div style="color: #94a3b8; text-align: center; grid-column: 1/-1;">資料庫目前無紀錄</div>';
-            } else {
-                grid.innerHTML = keys.slice(-12).reverse().map(k => {
-                    const r = records[k];
-                    let borderClass = "yang";
-                    if (r.houseName && r.houseName.includes("明")) borderClass = "ming";
-                    if (r.houseName && r.houseName.includes("山")) borderClass = "shan";
-
-                    return `
-                        <div class="student-card" style="border-left: 6px solid var(--${borderClass}-red);">
-                            <div class="card-top">
-                                <span class="st-name">${r.name}</span>
-                                <span class="st-class">${r.className}</span>
-                            </div>
-                            <div style="font-size:0.85rem; color:#cbd5e1; margin-bottom:8px;">${r.reason} (${r.rank})</div>
-                            <div class="card-bottom">
-                                <span style="font-size:0.8rem; color:#94a3b8;">${r.houseName} · ${r.teacher}</span>
-                                <span class="points-badge">+${r.points} 點</span>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
+                return;
             }
 
-            // 2. ✨ 即時更新學院分數下方的「學生獲得積分動態廣播牆」
-            const liveFeed = document.getElementById('liveFeedList');
-            if (keys.length === 0) {
-                liveFeed.innerHTML = '<div style="text-align: center; color: #64748b; padding: 20px;">尚無即時獲分廣播訊息</div>';
-            } else {
-                liveFeed.innerHTML = keys.slice(-10).reverse().map(k => {
-                    const r = records[k];
-                    let houseClass = "yang";
-                    let houseBadge = "☀️";
-                    if (r.houseName && r.houseName.includes("明")) { houseClass = "ming"; houseBadge = "💡"; }
-                    if (r.houseName && r.houseName.includes("山")) { houseClass = "shan"; houseBadge = "⛰️"; }
-
-                    return `
-                        <div class="live-feed-item ${houseClass}">
-                            <div>
-                                <span style="font-weight:bold; color:#fff; font-size:1.05rem;">${r.className} ${r.name}</span>
-                                <span style="font-size:0.82rem; color:#cbd5e1; margin-left:8px;">在「${r.reason}」獲得 ${r.rank}</span>
-                            </div>
-                            <div style="display:flex; align-items:center; gap:10px;">
-                                <span style="font-size:0.85rem; font-weight:bold; color:var(--magic-gold);">${houseBadge} ${r.houseName}</span>
-                                <span style="font-weight:900; color:#22c55e; font-size:1.2rem;">+${r.points} 分</span>
-                            </div>
+            grid.innerHTML = keys.slice(-12).reverse().map(k => {
+                const r = records[k];
+                return `
+                    <div class="student-cardyang">
+                        <div class="card-top">
+                            <span class="st-name">${r.name}</span>
+                            <span class="st-class">${r.className}</span>
                         </div>
-                    `;
-                }).join('');
-            }
+                        <div style="font-size:0.85rem; color:#cbd5e1; margin-bottom:8px;">${r.reason} (${r.rank})</div>
+                        <div class="card-bottom">
+                            <span style="font-size:0.8rem; color:#94a3b8;">${r.houseName} · ${r.teacher}</span>
+                            <span class="points-badge">+${r.points} 點</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
         });
     </script>
 </body>
