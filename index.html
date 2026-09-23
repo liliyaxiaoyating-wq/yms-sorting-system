@@ -79,6 +79,30 @@
         .tag { padding: 3px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; }
 
         .sync-status { font-size: 0.85rem; color: #22c55e; margin-left: auto; display: inline-flex; align-items: center; gap: 5px; }
+        .honor-tools { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin:15px 0 20px; }
+        .honor-tools input { flex:1; min-width:180px; }
+        .honor-note { color:#94a3b8; font-size:.9rem; margin-bottom:14px; }
+        .student-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:15px; }
+        .student-card { background:#0f172a; border:1px solid #475569; border-radius:14px; padding:18px; min-width:0; }
+        .student-card.yang { border-top:4px solid var(--yang-red); }
+        .student-card.ming { border-top:4px solid var(--ming-yellow); }
+        .student-card.shan { border-top:4px solid var(--shan-blue); }
+        .card-top,.card-bottom { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:7px; }
+        .st-name { font-size:1.12rem; font-weight:700; }
+        .st-class,.record-meta { color:#94a3b8; font-size:.85rem; }
+        .record-reason { color:#e2e8f0; margin:15px 0; line-height:1.5; overflow-wrap:anywhere; }
+        .points-badge { color:#fbbf24; font-size:1.2rem; font-weight:800; }
+        .score-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(225px,1fr)); gap:16px; }
+        .score-card { background:#0f172a; border:1px solid #475569; border-radius:16px; padding:20px; }
+        .score-card.leader { border-color:#fbbf24; box-shadow:0 0 0 1px rgba(251,191,36,.25); }
+        .score-heading { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+        .score-heading h2 { font-size:1.4rem; }
+        .score-rank { color:#fbbf24; font-weight:bold; }
+        .score-number { font-size:2.7rem; font-weight:900; margin:12px 0; }
+        .score-bar { height:10px; border-radius:8px; background:#334155; overflow:hidden; }
+        .score-bar > span { display:block; height:100%; width:0; border-radius:8px; transition:width .4s; }
+        .score-summary { margin-bottom:18px; color:#cbd5e1; }
+        @media(max-width:600px){ .panel {padding:17px;} .score-number {font-size:2.2rem;} }
     </style>
 
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -226,7 +250,16 @@
         <!-- TAB 3: 全校學生榮譽榜 -->
         <div id="tab-studentScores" class="tab-content">
             <div class="panel">
-                <div class="panel-title">🎒 最新學生登錄紀錄榜</div>
+                <div class="panel-title">🎒 學生榮譽榜</div>
+                <p class="honor-note">最新成績紀錄，可依姓名、班級或學院查找。</p>
+                <div class="honor-tools">
+                    <input id="honorSearch" type="text" placeholder="搜尋姓名或班級" aria-label="搜尋姓名或班級">
+                    <select id="honorHouse" aria-label="篩選學院">
+                        <option value="">所有學院</option><option value="陽學院">陽學院</option>
+                        <option value="明學院">明學院</option><option value="山學院">山學院</option>
+                    </select>
+                </div>
+                <p id="honorCount" class="honor-note" role="status">讀取紀錄中…</p>
                 <div class="student-grid" id="studentGrid"></div>
             </div>
         </div>
@@ -235,21 +268,22 @@
         <div id="tab-houseScores" class="tab-content">
             <div class="panel">
                 <div class="panel-title">🏆 三大學院總積分排行榜</div>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; text-align: center;">
-                    <div style="background:#0f172a; padding:20px; border-radius:15px; border:2px solid var(--yang-red);">
-                        <div style="font-size:2.5rem;">☀️</div>
-                        <h2 style="color:#f87171;">陽學院</h2>
-                        <div style="font-size:3.5rem; font-weight:bold; color:#f87171; margin:10px 0;" id="h-score-yang">0</div>
+                <p id="scoreSummary" class="score-summary" role="status">讀取學院積分中…</p>
+                <div class="score-grid" id="scoreGrid">
+                    <div class="score-card" data-house="yang">
+                        <div class="score-heading"><h2 style="color:#f87171">☀️ 陽學院</h2><span class="score-rank" id="rank-yang"></span></div>
+                        <div class="score-number" id="h-score-yang" style="color:#f87171">0</div>
+                        <div class="score-bar"><span id="bar-yang" style="background:#ef4444"></span></div>
                     </div>
-                    <div style="background:#0f172a; padding:20px; border-radius:15px; border:2px solid var(--ming-yellow);">
-                        <div style="font-size:2.5rem;">💡</div>
-                        <h2 style="color:#fbbf24;">明學院</h2>
-                        <div style="font-size:3.5rem; font-weight:bold; color:#fbbf24; margin:10px 0;" id="h-score-ming">0</div>
+                    <div class="score-card" data-house="ming">
+                        <div class="score-heading"><h2 style="color:#fbbf24">💡 明學院</h2><span class="score-rank" id="rank-ming"></span></div>
+                        <div class="score-number" id="h-score-ming" style="color:#fbbf24">0</div>
+                        <div class="score-bar"><span id="bar-ming" style="background:#f59e0b"></span></div>
                     </div>
-                    <div style="background:#0f172a; padding:20px; border-radius:15px; border:2px solid var(--shan-blue);">
-                        <div style="font-size:2.5rem;">⛰️</div>
-                        <h2 style="color:#60a5fa;">山學院</h2>
-                        <div style="font-size:3.5rem; font-weight:bold; color:#60a5fa; margin:10px 0;" id="h-score-shan">0</div>
+                    <div class="score-card" data-house="shan">
+                        <div class="score-heading"><h2 style="color:#60a5fa">⛰️ 山學院</h2><span class="score-rank" id="rank-shan"></span></div>
+                        <div class="score-number" id="h-score-shan" style="color:#60a5fa">0</div>
+                        <div class="score-bar"><span id="bar-shan" style="background:#3b82f6"></span></div>
                     </div>
                 </div>
                 <div class="reset-controls">
@@ -269,7 +303,7 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        const ADMIN_PASSWORD = "yms123";
+        const ADMIN_PASSWORD = "ymps6366";
 
         function switchTab(tabId, button) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
@@ -605,41 +639,60 @@
             });
         }
 
-        // 雲端監聽學院總分
-        db.ref('houseScores').on('value', (snapshot) => {
-            const scores = snapshot.val() || { yang: 0, ming: 0, shan: 0 };
-            document.getElementById('h-score-yang').innerText = scores.yang || 0;
-            document.getElementById('h-score-ming').innerText = scores.ming || 0;
-            document.getElementById('h-score-shan').innerText = scores.shan || 0;
+        // 學院積分：同分並列；進度條以最高分作為 100%。
+        db.ref('houseScores').on('value', snapshot => {
+            const raw = snapshot.val() || {};
+            const scores = Object.fromEntries(houseKeys.map(h => [h, Number(raw[h]) || 0]));
+            const highest = Math.max(0,...Object.values(scores));
+            const total = Object.values(scores).reduce((sum,n) => sum + n, 0);
+            document.getElementById('scoreSummary').textContent = highest
+                ? `三院累計 ${total.toLocaleString('zh-TW')} 點，積分變動後即時更新。`
+                : '目前尚無學院積分。';
+            houseKeys.forEach(h => {
+                document.getElementById(`h-score-${h}`).textContent = scores[h].toLocaleString('zh-TW') + ' 點';
+                document.getElementById(`bar-${h}`).style.width = highest ? `${Math.max(0,scores[h]) / highest * 100}%` : '0%';
+                const rank = highest ? 1 + houseKeys.filter(other => scores[other] > scores[h]).length : null;
+                document.getElementById(`rank-${h}`).textContent = rank ? `第 ${rank} 名` : '尚無排名';
+                document.querySelector(`[data-house="${h}"]`).classList.toggle('leader',highest > 0 && rank === 1);
+            });
         });
 
-        // 監聽學生榮譽榜
-        db.ref('scoreRecords').on('value', (snapshot) => {
-            const records = snapshot.val() || {};
-            const keys = Object.keys(records);
+        let honorRecords = [];
+        function renderHonorBoard() {
+            const keyword = document.getElementById('honorSearch').value.trim().toLocaleLowerCase();
+            const house = document.getElementById('honorHouse').value;
+            const filtered = honorRecords.filter(r =>
+                (!house || r.houseName === house) &&
+                (!keyword || `${r.name || ''} ${r.className || ''}`.toLocaleLowerCase().includes(keyword)));
+            const shown = filtered.slice(0, 24);
+            document.getElementById('honorCount').textContent =
+                `符合條件 ${filtered.length} 筆${filtered.length > 24 ? '，顯示最新 24 筆' : ''}。`;
             const grid = document.getElementById('studentGrid');
-
-            if (keys.length === 0) {
-                grid.innerHTML = '<div style="color: #94a3b8; text-align: center; grid-column: 1/-1;">資料庫目前無紀錄</div>';
-                return;
-            }
-
-            grid.innerHTML = keys.slice(-12).reverse().map(k => {
-                const r = records[k];
-                return `
-                    <div class="student-card">
-                        <div class="card-top">
-                            <span class="st-name">${r.name}</span>
-                            <span class="st-class">${r.className}</span>
-                        </div>
-                        <div style="font-size:0.85rem; color:#cbd5e1; margin-bottom:8px;">${r.reason} (${r.rank})</div>
-                        <div class="card-bottom">
-                            <span style="font-size:0.8rem; color:#94a3b8;">${r.houseName} · ${r.teacher}</span>
-                            <span class="points-badge">+${r.points} 點</span>
-                        </div>
-                    </div>
-                `;
-            }).join('');
+            grid.replaceChildren();
+            if (!shown.length) { grid.textContent = '目前沒有符合條件的紀錄。'; return; }
+            shown.forEach(r => {
+                const card = document.createElement('article');
+                card.className = 'student-card ' + (r.houseName === '陽學院' ? 'yang' : r.houseName === '明學院' ? 'ming' : r.houseName === '山學院' ? 'shan' : '');
+                const top = document.createElement('div'); top.className = 'card-top';
+                const name = document.createElement('span'); name.className = 'st-name'; name.textContent = r.name || '未填姓名';
+                const cls = document.createElement('span'); cls.className = 'st-class'; cls.textContent = r.className || '';
+                top.append(name,cls);
+                const reason = document.createElement('p'); reason.className = 'record-reason';
+                reason.textContent = `${r.reason || '未填寫事由'}${r.rank ? `（${r.rank}）` : ''}`;
+                const bottom = document.createElement('div'); bottom.className = 'card-bottom';
+                const meta = document.createElement('span'); meta.className = 'record-meta';
+                meta.textContent = [r.houseName,r.teacher,r.uploadTime].filter(Boolean).join(' · ');
+                const points = document.createElement('strong'); points.className = 'points-badge';
+                const value = Number(r.points) || 0;
+                points.textContent = `${value > 0 ? '+' : ''}${value} 點`;
+                bottom.append(meta,points); card.append(top,reason,bottom); grid.appendChild(card);
+            });
+        }
+        document.getElementById('honorSearch').addEventListener('input', renderHonorBoard);
+        document.getElementById('honorHouse').addEventListener('change', renderHonorBoard);
+        db.ref('scoreRecords').on('value', snapshot => {
+            honorRecords = Object.entries(snapshot.val() || {}).sort((a,b) => b[0].localeCompare(a[0])).map(([,r]) => r);
+            renderHonorBoard();
         });
     </script>
 </body>
