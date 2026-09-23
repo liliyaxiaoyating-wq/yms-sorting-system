@@ -192,9 +192,18 @@
                 <p id="uploadWindowStatus" role="status" aria-live="polite" style="margin:0 0 14px;color:var(--magic-gold);font-weight:bold;">正在確認上傳期間…</p>
                 <div style="border: 2px dashed #475569; padding: 25px; text-align: center; border-radius: 12px; background: rgba(15,23,42,0.5);">
                     <h3 style="color: var(--magic-gold); margin-bottom: 10px;">📁 上傳填妥的 Excel 檔案</h3>
+                    <label for="uploadTeacher" style="display:block;margin-bottom:8px;">上傳者姓名（備份檔名使用）</label>
+                    <input type="text" id="uploadTeacher" maxlength="30" autocomplete="name" placeholder="例如：王老師" style="margin-bottom:15px;width:min(100%,320px);">
+                    <br>
                     <input type="file" id="excelFileInput" accept=".xlsx, .xls" style="margin-bottom: 15px;">
                     <br>
-                    <button class="btn-action btn-blue" id="uploadExcelBtn" onclick="uploadExcel()">🚀 開始上傳並匯入資料庫</button>
+                    <button class="btn-action btn-blue" id="uploadExcelBtn" onclick="uploadExcel()">🚀 上傳成績並下載備份檔</button>
+                    <p id="backupStatus" role="status" aria-live="polite" style="margin-top:14px;color:#fbbf24;line-height:1.6;">網頁會下載「日期_上傳者」備份檔；請在成績上傳後自行備份至下方資料夾。</p>
+                    <div style="margin-top:16px;padding:15px;border:1px solid #60a5fa;border-radius:10px;background:rgba(59,130,246,0.12);">
+                        <p style="margin-bottom:10px;color:#e2e8f0;">📌 成績上傳後，請將下載的 Excel 備份檔手動上傳至：</p>
+                        <a class="btn-action btn-blue" href="https://drive.google.com/drive/folders/18HvkMYY_Bf8QtL6O9hwODhWSHN7I_JxV?usp=sharing" target="_blank" rel="noopener noreferrer">開啟 Google Drive 備份資料夾 ↗</a>
+                        <p style="margin-top:9px;color:#cbd5e1;font-size:.9rem;">檔名格式：日期_上傳者。網頁不會自動將檔案傳到 Google Drive。</p>
+                    </div>
                 </div>
             </div>
 
@@ -486,8 +495,8 @@
         function updateUploadWindow() {
             const w = taiwanUploadWindow();
             document.getElementById('uploadWindowStatus').textContent = w.open
-                ? `開放上傳：${w.year} 年 ${w.month} 月 ${w.startDay}～${w.lastDay} 日（臺灣時間，月底 23:59 截止）`
-                : `目前未開放上傳；下次期間：${w.year} 年 ${w.month} 月 ${w.startDay}～${w.lastDay} 日（臺灣時間）`;
+                ? `今天是 ${w.year} 年 ${w.month} 月 ${w.day} 日（臺灣時間）。目前可以上傳；本月開放 ${w.month} 月 ${w.startDay}～${w.lastDay} 日，月底 23:59 截止。`
+                : `今天是 ${w.year} 年 ${w.month} 月 ${w.day} 日（臺灣時間）。目前不能上傳；本月開放 ${w.month} 月 ${w.startDay}～${w.lastDay} 日。`;
             document.getElementById('uploadExcelBtn').disabled = !w.open;
             document.getElementById('excelFileInput').disabled = !w.open;
             return w.open;
@@ -503,6 +512,10 @@
             }
             const fileInput = document.getElementById('excelFileInput');
             const file = fileInput.files[0];
+            const uploader = document.getElementById('uploadTeacher').value.trim();
+            if (!uploader || !/^[\p{L}\p{N} _.-]{1,30}$/u.test(uploader)) {
+                alert('請填寫上傳者姓名（最多 30 字，不含特殊符號）。'); return;
+            }
             if (!file) { alert('請先選擇要上傳的 Excel 檔案！'); return; }
 
             const reader = new FileReader();
@@ -518,7 +531,11 @@
 
                 if (jsonData.length === 0) { alert('檔案內沒有數據！'); return; }
 
-                const nowTime = new Date().toLocaleString('zh-TW');
+                const nowTime = new Date().toLocaleString('zh-TW', {timeZone:'Asia/Taipei'});
+                const date = taiwanUploadWindow();
+                const datePart = `${date.year}-${String(date.month).padStart(2,'0')}-${String(date.day).padStart(2,'0')}`;
+                const ext = file.name.toLowerCase().endsWith('.xls') ? '.xls' : '.xlsx';
+                const backupName = `${datePart}_${uploader}${ext}`;
                 let count = 0;
 
                 jsonData.forEach(row => {
@@ -536,7 +553,8 @@
                         if (houseName.includes("山")) houseKey = "shan";
 
                         db.ref('scoreRecords').push({
-                            className, name, houseName, reason, rank, points, teacher, uploadTime: nowTime
+                            className, name, houseName, reason, rank, points, teacher, uploadTime: nowTime,
+                            uploader, backupFileName: backupName
                         });
 
                         db.ref(`houseScores/${houseKey}`).transaction(curr => (curr || 0) + points);
@@ -544,7 +562,15 @@
                     }
                 });
 
-                alert(`成功上傳並匯入 ${count} 筆成績資料！`);
+                if (!count) { alert('檔案中沒有可匯入的學生姓名。'); return; }
+                const url = URL.createObjectURL(file);
+                const link = document.createElement('a');
+                link.href = url; link.download = backupName;
+                document.body.appendChild(link); link.click(); link.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 60000);
+                document.getElementById('backupStatus').textContent =
+                    `已產生 ${backupName}。請把下載的檔案上傳至指定 Google Drive 資料夾；網頁目前無法自動確認 Drive 備份。`;
+                alert(`已送出 ${count} 筆成績匯入請求，並下載備份檔 ${backupName}。請手動上傳至指定 Google Drive 資料夾。`);
                 fileInput.value = '';
             };
             reader.readAsArrayBuffer(file);
