@@ -189,11 +189,12 @@
                 <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 20px;">
                     <button class="btn-action btn-green" onclick="downloadTemplate()">📥 下載成績/積分紀錄範本 (.xlsx)</button>
                 </div>
+                <p id="uploadWindowStatus" role="status" aria-live="polite" style="margin:0 0 14px;color:var(--magic-gold);font-weight:bold;">正在確認上傳期間…</p>
                 <div style="border: 2px dashed #475569; padding: 25px; text-align: center; border-radius: 12px; background: rgba(15,23,42,0.5);">
                     <h3 style="color: var(--magic-gold); margin-bottom: 10px;">📁 上傳填妥的 Excel 檔案</h3>
                     <input type="file" id="excelFileInput" accept=".xlsx, .xls" style="margin-bottom: 15px;">
                     <br>
-                    <button class="btn-action btn-blue" onclick="uploadExcel()">🚀 開始上傳並匯入資料庫</button>
+                    <button class="btn-action btn-blue" id="uploadExcelBtn" onclick="uploadExcel()">🚀 開始上傳並匯入資料庫</button>
                 </div>
             </div>
 
@@ -471,13 +472,45 @@
             XLSX.writeFile(workbook, "陽明山國小_學生成績與積分登錄範本.xlsx");
         }
 
+        // 每月最後 7 個日曆日（含最後一天），以臺灣時間計算。
+        function taiwanUploadWindow(now = new Date()) {
+            const parts = new Intl.DateTimeFormat('en-US', {
+                timeZone:'Asia/Taipei',year:'numeric',month:'numeric',day:'numeric'
+            }).formatToParts(now);
+            const value = type => Number(parts.find(part => part.type === type).value);
+            const year = value('year'), month = value('month'), day = value('day');
+            const lastDay = new Date(Date.UTC(year,month,0)).getUTCDate();
+            return {year,month,day,startDay:lastDay - 6,lastDay,
+                open:day >= lastDay - 6};
+        }
+        function updateUploadWindow() {
+            const w = taiwanUploadWindow();
+            document.getElementById('uploadWindowStatus').textContent = w.open
+                ? `開放上傳：${w.year} 年 ${w.month} 月 ${w.startDay}～${w.lastDay} 日（臺灣時間，月底 23:59 截止）`
+                : `目前未開放上傳；下次期間：${w.year} 年 ${w.month} 月 ${w.startDay}～${w.lastDay} 日（臺灣時間）`;
+            document.getElementById('uploadExcelBtn').disabled = !w.open;
+            document.getElementById('excelFileInput').disabled = !w.open;
+            return w.open;
+        }
+        updateUploadWindow();
+        setInterval(updateUploadWindow, 30000);
+        document.addEventListener('visibilitychange', updateUploadWindow);
+
         function uploadExcel() {
+            if (!updateUploadWindow()) {
+                alert('成績上傳僅限每月最後 7 個日曆日（臺灣時間）。');
+                return;
+            }
             const fileInput = document.getElementById('excelFileInput');
             const file = fileInput.files[0];
             if (!file) { alert('請先選擇要上傳的 Excel 檔案！'); return; }
 
             const reader = new FileReader();
             reader.onload = function(e) {
+                if (!updateUploadWindow()) {
+                    alert('上傳期限已結束，檔案尚未匯入。');
+                    return;
+                }
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, { type: 'array' });
                 const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
