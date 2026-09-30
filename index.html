@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>陽明山國小 - 魔法榮譽制度管理系統 (年級平衡版)</title>
+    <title>陽明山國小 - 管理員分頁版 v3</title>
     <style>
         :root {
             --yang-red: #ef4444;
@@ -118,6 +118,7 @@
         <button class="nav-btn" onclick="switchTab('import', this)">📤 教師成績上傳專區</button>
         <button class="nav-btn" onclick="switchTab('studentScores', this)">🎒 全校學生榮譽榜</button>
         <button class="nav-btn" onclick="switchTab('houseScores', this)">🏆 學院總積分</button>
+        <button class="nav-btn" onclick="switchTab('admin', this)">🔒 管理員專區</button>
     </nav>
 
     <div class="main-container">
@@ -126,6 +127,7 @@
         <div id="tab-sorting" class="tab-content active">
             <div class="panel" style="text-align: center;">
                 <h1 style="color: var(--magic-gold); margin-bottom: 8px; font-size: 2.2rem;">陽明山國小 魔法分類帽</h1>
+                <p style="color:#fbbf24;margin-bottom:10px;">版本 v3｜上方已新增「🔒 管理員專區」</p>
                 <p style="color: #94a3b8; margin-bottom: 20px;">「草山之好．知行合一」學生年級平衡・院長與魔法師分類儀式</p>
 
                 <div class="sorting-hat-box" id="hatBox">
@@ -235,10 +237,13 @@
                 </div>
             </div>
 
+        </div>
+
+        <div id="tab-admin" class="tab-content">
             <div class="panel">
-                <div class="panel-title">🔒 管理者專區（主表匯出權限）</div>
+                <div class="panel-title">🔒 管理員專區</div>
                 <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid var(--magic-gold); border-radius: 12px; padding: 15px;">
-                    <p style="color: #cbd5e1; font-size: 0.9rem; margin-bottom: 10px;">請輸入管理者密碼解鎖下載全校彙整主表：</p>
+                    <p style="color: #cbd5e1; font-size: 0.9rem; margin-bottom: 10px;">請輸入管理者密碼，解鎖成績更正、刪除及全校主表匯出功能：</p>
                     <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                         <input type="password" id="adminPassword" placeholder="請輸入密碼...">
                         <button class="btn-action btn-purple" onclick="unlockAdmin()">🔓 驗證並解鎖權限</button>
@@ -246,6 +251,32 @@
                     <div id="adminExportArea" style="display: none; margin-top: 15px; padding-top: 15px; border-top: 1px solid #334155;">
                         <span style="color: #22c55e; font-weight: bold;">✅ 身分驗證成功：</span><br><br>
                         <button class="btn-action btn-green" onclick="exportMasterTable()">📊 下載全校整合主表 (.xlsx)</button>
+                        <div style="margin-top:22px;">
+                            <h3 style="color:var(--magic-gold);">✏️ 成績更正管理</h3>
+                            <p style="margin:10px 0;color:#cbd5e1;">搜尋姓名、班級、上傳者或日期，再選擇紀錄。修改與刪除會同步調整學院積分，並保留更正紀錄。</p>
+                            <input id="correctionSearch" type="text" placeholder="搜尋姓名、班級、上傳者或日期" oninput="renderCorrections()" style="width:100%;">
+                            <div id="correctionList" class="history-list"></div>
+                            <form id="correctionForm" hidden onsubmit="event.preventDefault();correctScore(false)">
+                                <p id="correctionOriginal" style="margin:12px 0;"></p>
+                                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;">
+                                    <label>學生姓名<input id="editName" type="text" required style="width:100%;"></label>
+                                    <label>班級<input id="editClass" type="text" style="width:100%;"></label>
+                                    <label>所屬學院<select id="editHouse" style="width:100%;"><option>陽學院</option><option>明學院</option><option>山學院</option></select></label>
+                                    <label>事由<input id="editReason" type="text" required style="width:100%;"></label>
+                                    <label>成績／名次<input id="editRank" type="text" style="width:100%;"></label>
+                                    <label>積分<input id="editPoints" type="text" inputmode="numeric" required style="width:100%;"></label>
+                                    <label>更正人姓名<input id="editOperator" type="text" required style="width:100%;"></label>
+                                    <label>更正原因<input id="editNote" type="text" required style="width:100%;"></label>
+                                </div>
+                                <div style="display:flex;gap:12px;margin-top:15px;flex-wrap:wrap;">
+                                    <button id="saveCorrectionBtn" type="submit" class="btn-action btn-green">儲存修改並調整積分</button>
+                                    <button id="deleteCorrectionBtn" type="button" onclick="correctScore(true)" class="btn-action btn-danger">刪除此筆並扣回積分</button>
+                                </div>
+                            </form>
+                            <p id="correctionStatus" role="status" aria-live="polite" style="margin-top:12px;"></p>
+                            <h4 style="margin-top:20px;">最近更正紀錄</h4>
+                            <div id="correctionAuditList" class="history-list"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -624,12 +655,15 @@
             reader.readAsArrayBuffer(file);
         }
 
+        let adminUnlocked = false;
         function unlockAdmin() {
             const pwd = document.getElementById('adminPassword').value;
             if (pwd === ADMIN_PASSWORD) {
+                adminUnlocked = true;
                 document.getElementById('adminExportArea').style.display = 'block';
+                renderCorrections();
                 alert('管理者身分驗證成功！');
-            } else { alert('密碼錯誤！'); }
+            } else { adminUnlocked = false; document.getElementById('adminExportArea').style.display = 'none'; alert('密碼錯誤！'); }
         }
 
         function exportMasterTable() {
@@ -708,6 +742,111 @@
             honorRecords = Object.entries(snapshot.val() || {}).sort((a,b) => b[0].localeCompare(a[0])).map(([,r]) => r);
             renderHonorBoard();
         });
+
+        let editableRecords = {}, selectedCorrection = null, correctionBusy = false;
+        const correctionHouseKeys = {'陽學院':'yang','明學院':'ming','山學院':'shan'};
+        function renderCorrections() {
+            if (!adminUnlocked) return;
+            const list = document.getElementById('correctionList'); list.replaceChildren();
+            const term = document.getElementById('correctionSearch').value.trim().toLocaleLowerCase();
+            const rows = Object.entries(editableRecords).filter(([,r]) =>
+                [r.name,r.className,r.uploader,r.teacher,r.uploadTime].join(' ').toLocaleLowerCase().includes(term))
+                .sort((a,b) => b[0].localeCompare(a[0]));
+            if (!rows.length) { list.textContent = '沒有符合條件的紀錄。'; return; }
+            const summary = document.createElement('p'); summary.textContent = `符合 ${rows.length} 筆，顯示最新 ${Math.min(50,rows.length)} 筆。`; list.appendChild(summary);
+            rows.slice(0,50).forEach(([key,r]) => {
+                const row = document.createElement('div'); row.className='history-item';
+                const label = document.createElement('span');
+                label.textContent = `${r.name}・${r.className || ''}・${r.houseName}・${r.points}點・${r.reason || ''}・${r.uploadTime || ''}`;
+                const btn = document.createElement('button'); btn.type='button'; btn.className='btn-action'; btn.textContent='選擇';
+                btn.disabled=correctionBusy;
+                btn.onclick=()=>selectCorrection(key); row.append(label,btn); list.appendChild(row);
+            });
+        }
+        function selectCorrection(key) {
+            if (!adminUnlocked || correctionBusy) return;
+            const r=editableRecords[key]; if (!r) return;
+            selectedCorrection={key,original:JSON.parse(JSON.stringify(r))};
+            for (const [id,field] of [['editName','name'],['editClass','className'],['editHouse','houseName'],['editReason','reason'],['editRank','rank'],['editPoints','points']])
+                document.getElementById(id).value=r[field] ?? '';
+            document.getElementById('editNote').value='';
+            document.getElementById('correctionOriginal').textContent=`原紀錄：${r.name}／${r.houseName}／${r.points}點（上傳者：${r.uploader || r.teacher || '未填'}）`;
+            document.getElementById('correctionForm').hidden=false;
+            document.getElementById('correctionStatus').textContent='';
+        }
+        // 用同一筆根節點交易修改紀錄、總積分及稽核資料；遇到資料變動即中止。
+        function applyScoreCorrection(current, selection, replacement, auditKey, audit) {
+            if (!current || !current.scoreRecords ||
+                JSON.stringify(current.scoreRecords[selection.key]) !== JSON.stringify(selection.original)) return;
+            const old=selection.original;
+            const oldHouse=correctionHouseKeys[old.houseName];
+            const oldPoints=Number(old.points);
+            if (!oldHouse || !Number.isSafeInteger(oldPoints)) return;
+            const deltas={[oldHouse]:-oldPoints};
+            if (replacement) {
+                const newHouse=correctionHouseKeys[replacement.houseName];
+                if (!newHouse || !Number.isSafeInteger(replacement.points)) return;
+                deltas[newHouse]=(deltas[newHouse] || 0)+replacement.points;
+            }
+            const next={...current,scoreRecords:{...current.scoreRecords},houseScores:{...current.houseScores},
+                scoreCorrections:{...current.scoreCorrections,[auditKey]:audit}};
+            for (const [house,delta] of Object.entries(deltas)) {
+                const existing=Number(next.houseScores[house] ?? 0);
+                if (!Number.isSafeInteger(existing) || !Number.isSafeInteger(existing+delta)) return;
+                next.houseScores[house]=existing+delta;
+            }
+            if (replacement) next.scoreRecords[selection.key]=replacement;
+            else delete next.scoreRecords[selection.key];
+            return next;
+        }
+        async function correctScore(remove) {
+            if (!adminUnlocked || !selectedCorrection || correctionBusy) return;
+            if (!online) { alert('尚未連線，請稍後再試。'); return; }
+            const value=id=>document.getElementById(id).value.trim();
+            const operator=value('editOperator'), note=value('editNote');
+            if (!operator || !note) { alert('請填寫更正人姓名與更正原因。'); return; }
+            const selection=selectedCorrection;
+            let replacement=null;
+            if (!remove) {
+                const pointsText=value('editPoints'), points=Number(pointsText);
+                if (!value('editName') || !value('editReason') || !/^-?\d+$/.test(pointsText) || !Number.isSafeInteger(points) || !correctionHouseKeys[value('editHouse')]) {
+                    alert('請填寫姓名、事由、有效學院與整數積分。'); return;
+                }
+                replacement={...selection.original,name:value('editName'),className:value('editClass'),houseName:value('editHouse'),
+                    reason:value('editReason'),rank:value('editRank'),points};
+            }
+            if (!confirm(remove ? `確定刪除 ${selection.original.name} 這筆紀錄並扣回 ${selection.original.points} 點？` : '確定儲存修改並同步調整學院積分？')) return;
+            correctionBusy=true; renderCorrections();
+            document.getElementById('saveCorrectionBtn').disabled=true;
+            document.getElementById('deleteCorrectionBtn').disabled=true;
+            const auditKey=db.ref('scoreCorrections').push().key;
+            const audit={recordKey:selection.key,action:remove?'delete':'update',operator,note,
+                before:selection.original,after:replacement,timestamp:firebase.database.ServerValue.TIMESTAMP,
+                time:new Date().toLocaleString('zh-TW',{timeZone:'Asia/Taipei'})};
+            try {
+                const result=await db.ref().transaction(current=>applyScoreCorrection(current,selection,replacement,auditKey,audit),undefined,false);
+                if (!result.committed) throw new Error('紀錄已被變更、刪除，或原始積分／學院無效。請重新選擇紀錄。');
+                selectedCorrection=null; document.getElementById('correctionForm').hidden=true;
+                document.getElementById('correctionStatus').textContent=remove?'已刪除紀錄、扣回積分並保留更正紀錄。':'已修改紀錄、調整積分並保留更正紀錄。';
+            } catch(error) {
+                document.getElementById('correctionStatus').textContent=`未能確認更正結果：${error.message} 請先核對最新紀錄再操作。`;
+            } finally {
+                correctionBusy=false; renderCorrections();
+                document.getElementById('saveCorrectionBtn').disabled=false;
+                document.getElementById('deleteCorrectionBtn').disabled=false;
+            }
+        }
+        db.ref('scoreRecords').on('value',snap=>{editableRecords=snap.val() || {};renderCorrections();});
+        db.ref('scoreCorrections').on('value',snap=>{
+            const list=document.getElementById('correctionAuditList'); list.replaceChildren();
+            const rows=Object.values(snap.val() || {}).sort((a,b)=>(b.timestamp || 0)-(a.timestamp || 0)).slice(0,20);
+            if (!rows.length) list.textContent='尚無更正紀錄。';
+            rows.forEach(r=>{
+                const row=document.createElement('p'); row.style.marginBottom='12px';
+                row.textContent=`${r.time}｜${r.operator}｜${r.action==='delete'?'刪除':'修改'} ${r.before?.name || ''}｜${r.before?.houseName} ${r.before?.points}點 → ${r.after ? `${r.after.houseName} ${r.after.points}點` : '已刪除'}｜原因：${r.note}`;
+                list.appendChild(row);
+            });
+        },()=>{document.getElementById('correctionAuditList').textContent='無法讀取更正紀錄，請確認資料庫權限。';});
     </script>
 </body>
 </html>
