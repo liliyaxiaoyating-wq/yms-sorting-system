@@ -126,7 +126,7 @@
         <div id="tab-sorting" class="tab-content active">
             <div class="panel" style="text-align: center;">
                 <h1 style="color: var(--magic-gold); margin-bottom: 8px; font-size: 2.2rem;">陽明山國小 魔法分類帽</h1>
-                <p style="color: #94a3b8; margin-bottom: 20px;">「草山之好．知行合一」年級平衡公平抽籤儀式</p>
+                <p style="color: #94a3b8; margin-bottom: 20px;">「草山之好．知行合一」學生年級平衡・院長與魔法師分類儀式</p>
 
                 <div class="sorting-hat-box" id="hatBox">
                     <div class="sorting-hat-icon">🧙‍♂️</div>
@@ -141,9 +141,11 @@
                         <option value="g4">四年級</option>
                         <option value="g5">五年級</option>
                         <option value="g6">六年級</option>
+                        <option value="dean">院長（3人）</option>
+                        <option value="wizard">魔法師（26人）</option>
                         
                     </select>
-                    <input type="text" id="studentName" placeholder="請輸入學生姓名..." autocomplete="off" style="flex: 1.5; min-width: 160px;">
+                    <input type="text" id="studentName" placeholder="請輸入姓名..." autocomplete="off" style="flex: 1.5; min-width: 160px;">
                     <button class="btn-action" id="sortBtn" onclick="startSorting()">戴上分類帽！</button>
                 </div>
 
@@ -162,7 +164,7 @@
                 <!-- 各年級在三院的分佈即時統計表 -->
                 <div style="margin-top: 30px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px; text-align: left;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                        <span style="font-weight: bold; color: var(--magic-gold); font-size: 1.1rem;">📊 一～六年級學院人數統計表</span>
+                        <span style="font-weight: bold; color: var(--magic-gold); font-size: 1.1rem;">📊 學生、院長與魔法師學院人數統計表</span>
                         <span class="sync-status" id="syncStatus">⏳ 讀取分類紀錄中</span>
                     </div>
 
@@ -170,11 +172,11 @@
                     <table class="grade-table">
                         <thead>
                             <tr>
-                                <th>年級階段</th>
+                                <th>年級／身分</th>
                                 <th style="color:#f87171;">☀️ 陽學院</th>
                                 <th style="color:#fbbf24;">💡 明學院</th>
                                 <th style="color:#60a5fa;">⛰️ 山學院</th>
-                                <th>年級小計</th>
+                                <th>分類小計</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -184,6 +186,8 @@
                             <tr><td>四年級</td><td id="count-g4-yang">0</td><td id="count-g4-ming">0</td><td id="count-g4-shan">0</td><td id="total-g4">0</td></tr>
                             <tr><td>五年級</td><td id="count-g5-yang">0</td><td id="count-g5-ming">0</td><td id="count-g5-shan">0</td><td id="total-g5">0</td></tr>
                             <tr><td>六年級</td><td id="count-g6-yang">0</td><td id="count-g6-ming">0</td><td id="count-g6-shan">0</td><td id="total-g6">0</td></tr>
+                            <tr><td>院長（3人）</td><td id="count-dean-yang">0</td><td id="count-dean-ming">0</td><td id="count-dean-shan">0</td><td id="total-dean">0</td></tr>
+                            <tr><td>魔法師（26人）</td><td id="count-wizard-yang">0</td><td id="count-wizard-ming">0</td><td id="count-wizard-shan">0</td><td id="total-wizard">0</td></tr>
                             <tr style="font-weight:bold"><td>全校合計</td><td id="grand-yang">0</td><td id="grand-ming">0</td><td id="grand-shan">0</td><td id="grand-total">0</td></tr>
                         </tbody>
                     </table>
@@ -194,7 +198,7 @@
                         <button type="button" class="btn-action btn-danger" id="resetSortingBtn" onclick="resetSorting()">重置分類紀錄</button>
                     </div>
                     <div class="history-list" id="historyList">
-                        <div style="text-align: center; color: #64748b; padding: 15px;">尚無分類記錄，請選擇年級並輸入姓名開始抽籤！</div>
+                        <div style="text-align: center; color: #64748b; padding: 15px;">尚無分類記錄，請選擇年級／身分並輸入姓名開始抽籤！</div>
                     </div>
                 </div>
             </div>
@@ -333,10 +337,16 @@
             shan: { name: '山學院', badge: '⛰️', motto: '穩重踏實．互助合作．成就彼此', tagBg: 'rgba(59,130,246,0.2)', tagColor: '#60a5fa', desc: '你擁有如山一般的穩重與值得信任的品格！在【山學院】，你將透過團隊合作成就彼此！' }
         };
 
-        const gradeLabels = { g1:'一年級', g2:'二年級', g3:'三年級', g4:'四年級', g5:'五年級', g6:'六年級' };
+        const gradeLabels = { g1:'一年級', g2:'二年級', g3:'三年級', g4:'四年級', g5:'五年級', g6:'六年級', dean:'院長', wizard:'魔法師' };
         const gradeKeys = Object.keys(gradeLabels);
         const houseKeys = ['yang','ming','shan'];
+        const studentGradeKeys = ['g1','g2','g3','g4','g5','g6'];
         const plannedTotal = 87;
+        const categoryLimits = {dean:3, wizard:26};
+        function categoryFull(records, grade) {
+            return categoryLimits[grade] !== undefined &&
+                Object.values(records || {}).filter(r => r && r.grade === grade && houses[r.houseKey]).length >= categoryLimits[grade];
+        }
         // 使用獨立紀錄，避免舊版 low/mid/high 及過去測試紀錄影響正式統計。
         // 上線前請確認此路徑沒有先前的測試資料，並備份既有紀錄。
         const sortingRef = db.ref('sortingRecordsV2');
@@ -359,7 +369,8 @@
             const minGrade = Math.min(...houseKeys.map(h => counts[grade][h]));
             let candidates = houseKeys.filter(h => counts[grade][h] === minGrade);
             const totals = Object.fromEntries(houseKeys.map(h =>
-                [h, gradeKeys.reduce((sum,g) => sum + counts[g][h], 0)]));
+                [h, studentGradeKeys.reduce((sum,g) => sum + counts[g][h], 0)]));
+            if (!studentGradeKeys.includes(grade)) return candidates[Math.floor(Math.random() * candidates.length)];
             const minTotal = Math.min(...candidates.map(h => totals[h]));
             candidates = candidates.filter(h => totals[h] === minTotal);
             return candidates[Math.floor(Math.random() * candidates.length)];
@@ -380,7 +391,7 @@
             houseKeys.forEach(h => document.getElementById(`grand-${h}`).textContent = totals[h]);
             document.getElementById('grand-total').textContent = done;
             document.getElementById('sortingProgress').textContent =
-                `已分類 ${done}／${plannedTotal} 人　｜　陽 ${totals.yang}　明 ${totals.ming}　山 ${totals.shan}`;
+                `學生 ${studentGradeKeys.reduce((sum,g) => sum + houseKeys.reduce((n,h) => n + counts[g][h],0),0)}／${plannedTotal} 人　｜　院長 ${houseKeys.reduce((sum,h) => sum + counts.dean[h],0)}／3 人　｜　魔法師 ${houseKeys.reduce((sum,h) => sum + counts.wizard[h],0)}／26 人　｜　全部已分類 ${done} 人`;
             const list = document.getElementById('historyList');
             list.replaceChildren();
             const items = Object.values(records || {}).filter(r => r && gradeLabels[r.grade] && houses[r.houseKey])
@@ -425,7 +436,7 @@
             const gradeInput = document.getElementById('studentGrade');
             const name = nameInput.value.trim();
             const grade = gradeInput.value;
-            if (!name || !gradeLabels[grade]) { alert('請選擇年級並輸入學生姓名'); return; }
+            if (!name || !gradeLabels[grade]) { alert('請選擇年級／身分並輸入姓名'); return; }
             sortingBusy = true; updateAvailability();
             nameInput.disabled = true; gradeInput.disabled = true;
             const dialogue = document.getElementById('dialogue');
@@ -437,13 +448,15 @@
             // 與動畫同時送出交易。交易在最新雲端紀錄上重算，可避免兩台裝置同時抽籤時使用過期人數。
             const key = sortingRef.push().key;
             let duplicate = false;
+            let full = false;
             const time = new Date().toLocaleTimeString('zh-TW', {hour:'2-digit',minute:'2-digit'});
             const animation = wait(3200);
             try {
                 const transaction = await sortingRef.transaction(current => {
                     const records = current || {};
+                    duplicate = false; full = false;
                     if (existingStudent(records,grade,name)) { duplicate = true; return; }
-                    duplicate = false;
+                    if (categoryFull(records,grade)) { full = true; return; }
                     const selected = pickHouse(countsFromRecords(records),grade);
                     return {...records, [key]: {name,grade,houseKey:selected,time,
                         timestamp:firebase.database.ServerValue.TIMESTAMP}};
@@ -451,16 +464,17 @@
                 await animation;
                 if (!transaction.committed) {
                     dialogue.textContent = duplicate
-                        ? '這位同學已有分類紀錄，請先核對姓名與年級。'
+                        ? '此姓名在這個年級／身分已有分類紀錄，請先核對。'
+                        : full ? `${gradeLabels[grade]}已達 ${categoryLimits[grade]} 人名額，無法繼續分類。`
                         : '分類未完成，請確認網路後再試。';
                     return;
                 }
                 const saved = transaction.snapshot.child(key).val();
                 if (!saved || !houses[saved.houseKey]) throw new Error('無法確認已儲存的學院');
                 const house = houses[saved.houseKey];
-                dialogue.textContent = `「${gradeLabels[grade]}的 ${name} 同學，歡迎加入【${house.name}】！」`;
+                dialogue.textContent = `「${gradeLabels[grade]}的 ${name}${studentGradeKeys.includes(grade) ? " 同學" : ""}，歡迎加入【${house.name}】！」`;
                 document.getElementById('houseBadge').textContent = house.badge;
-                document.getElementById('resStudentName').textContent = `${gradeLabels[grade]} ${name} 同學`;
+                document.getElementById('resStudentName').textContent = `${gradeLabels[grade]} ${name}${studentGradeKeys.includes(grade) ? " 同學" : ""}`;
                 document.getElementById('houseTitle').textContent = house.name;
                 document.getElementById('houseMotto').textContent = house.motto;
                 document.getElementById('houseDesc').textContent = house.desc;
