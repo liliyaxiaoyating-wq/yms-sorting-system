@@ -170,6 +170,11 @@
                         <span class="sync-status" id="syncStatus">⏳ 讀取分類紀錄中</span>
                     </div>
 
+                    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0;">
+                        <button type="button" class="btn-action btn-green" id="exportSortingBtn" onclick="exportSortingExcel()" disabled>📥 匯出分類結果 Excel (.xlsx)</button>
+                        <span style="color:#94a3b8;font-size:.9rem;">包含完整分類名冊、各學院名冊及人數統計（含院長與魔法師）</span>
+                    </div>
+                    <p id="sortingExportStatus" role="status" aria-live="polite" style="color:#cbd5e1;font-size:.9rem;"></p>
                     <div id="sortingProgress" role="status" aria-live="polite" style="font-size:1.15rem;color:var(--magic-gold);font-weight:bold;margin:12px 0;">讀取分類進度中…</div>
                     <table class="grade-table">
                         <thead>
@@ -214,12 +219,13 @@
                     <span class="sync-status">🟢 雲端連線中</span>
                 </div>
                 <p style="color: #cbd5e1; line-height: 1.6; margin-bottom: 20px;">
-                    請各位老師先點擊下載「標準 Excel 範本」，填妥學生表現與成績紀錄後上傳，即可自動歸戶彙整至雲端。
+                    請各位老師先點擊下載「標準 Excel 範本」，填妥學生表現與成績紀錄後上傳，即可自動歸戶彙整至雲端。<br>
+                    <strong style="color:#fbbf24;">請勿刪除或修改第 2 列黃色範例（第一筆資料）；此列僅供參考，上傳時會自動略過。請從第 3 列開始填寫。</strong><br>班級、所屬學院與成績／名次可使用 Excel 下拉選單選擇（第 3～1002 列）。
                 </p>
                 <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 20px;">
                     <button class="btn-action btn-green" onclick="downloadTemplate()">📥 下載成績/積分紀錄範本 (.xlsx)</button>
                 </div>
-                <p id="uploadWindowStatus" role="status" aria-live="polite" style="margin:0 0 14px;color:var(--magic-gold);font-weight:bold;">正在確認上傳期間…</p>
+                <p id="uploadWindowStatus" role="status" aria-live="polite" style="margin:0 0 14px;color:var(--magic-gold);font-weight:bold;">成績與積分上傳全天開放，無日期限制。</p>
                 <div style="border: 2px dashed #475569; padding: 25px; text-align: center; border-radius: 12px; background: rgba(15,23,42,0.5);">
                     <h3 style="color: var(--magic-gold); margin-bottom: 10px;">📁 上傳填妥的 Excel 檔案</h3>
                     <label for="uploadTeacher" style="display:block;margin-bottom:8px;">上傳者姓名（備份檔名使用）</label>
@@ -382,6 +388,7 @@
         // 上線前請確認此路徑沒有先前的測試資料，並備份既有紀錄。
         const sortingRef = db.ref('sortingRecordsV2');
         const RESET_PASSWORD = 'ymps6366';
+        let sortingRecords = {};
         let recordsReady = false;
         let online = false;
         let sortingBusy = false;
@@ -440,19 +447,72 @@
         }
         function updateAvailability() {
             document.getElementById('sortBtn').disabled = sortingBusy || !recordsReady || !online;
+            document.getElementById('exportSortingBtn').disabled = sortingBusy || !recordsReady || !online;
             document.getElementById('syncStatus').textContent = online && recordsReady
                 ? '🟢 雲端即時同步中' : '🔴 離線或讀取失敗，暫停分類';
         }
         db.ref('.info/connected').on('value', snap => { online = snap.val() === true; updateAvailability(); });
         sortingRef.on('value', snap => {
             recordsReady = true;
-            renderRecords(snap.val() || {});
+            sortingRecords = snap.val() || {};
+            renderRecords(sortingRecords);
             updateAvailability();
         }, error => {
             recordsReady = false;
             updateAvailability();
             document.getElementById('sortingProgress').textContent = `無法讀取分類紀錄：${error.message}`;
         });
+
+        // 匯出目前即時同步的完整分類紀錄，不受畫面最近 15 筆限制。
+        function exportSortingExcel() {
+            const status = document.getElementById('sortingExportStatus');
+            if (sortingBusy || !recordsReady || !online) {
+                status.textContent = '請等待分類完成並確認雲端連線後再匯出。'; return;
+            }
+            if (typeof XLSX === 'undefined') {
+                status.textContent = 'Excel 功能尚未載入，請確認網路後重新整理頁面。'; return;
+            }
+            const records = Object.values(sortingRecords).filter(r =>
+                r && gradeKeys.includes(r.grade) && houseKeys.includes(r.houseKey))
+                .sort((a,b) => gradeKeys.indexOf(a.grade) - gradeKeys.indexOf(b.grade)
+                    || houseKeys.indexOf(a.houseKey) - houseKeys.indexOf(b.houseKey)
+                    || String(a.name || '').localeCompare(String(b.name || ''), 'zh-Hant')
+                    || (a.timestamp || 0) - (b.timestamp || 0));
+            if (!records.length) { status.textContent = '目前尚無分類紀錄可匯出。'; return; }
+            try {
+                const workbook = XLSX.utils.book_new();
+                const header = ['序號','年級／身分','姓名','所屬學院','分類時間（臺灣時間）'];
+                function appendRoster(items, title) {
+                    const rows = items.map((r,i) => [i+1, gradeLabels[r.grade], String(r.name || ''),
+                        houses[r.houseKey].name,
+                        typeof r.timestamp === 'number' && Number.isFinite(r.timestamp)
+                            ? new Date(r.timestamp).toLocaleString('zh-TW', {timeZone:'Asia/Taipei',hour12:false})
+                            : String(r.time || '')]);
+                    const sheet = XLSX.utils.aoa_to_sheet([header, ...rows]);
+                    sheet['!cols'] = [8,16,18,16,28].map(wch => ({wch}));
+                    sheet['!autofilter'] = {ref:sheet['!ref']};
+                    XLSX.utils.book_append_sheet(workbook, sheet, title);
+                }
+                appendRoster(records, '完整分類名冊');
+                const counts = countsFromRecords(sortingRecords);
+                const summary = [['年級／身分', ...houseKeys.map(h => houses[h].name), '分類小計']];
+                gradeKeys.forEach(g => summary.push([gradeLabels[g], ...houseKeys.map(h => counts[g][h]),
+                    houseKeys.reduce((sum,h) => sum + counts[g][h],0)]));
+                summary.push(['全校合計', ...houseKeys.map(h => gradeKeys.reduce((sum,g) => sum+counts[g][h],0)), records.length]);
+                const sheet = XLSX.utils.aoa_to_sheet(summary);
+                sheet['!cols'] = [18,14,14,14,14].map(wch => ({wch}));
+                XLSX.utils.book_append_sheet(workbook, sheet, '人數統計');
+                houseKeys.forEach(h => appendRoster(records.filter(r => r.houseKey === h), houses[h].name+'名冊'));
+                const parts = new Intl.DateTimeFormat('en-GB', {timeZone:'Asia/Taipei',
+                    year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).formatToParts(new Date());
+                const value = type => parts.find(p => p.type === type).value;
+                const stamp = `${value('year')}-${value('month')}-${value('day')}_${value('hour')}${value('minute')}${value('second')}`;
+                XLSX.writeFile(workbook, `陽明山國小_分類帽結果_${stamp}.xlsx`);
+                status.textContent = `已匯出 ${records.length} 筆分類紀錄，請查看下載的 Excel 檔案。`;
+            } catch (error) {
+                status.textContent = '匯出失敗：' + error.message;
+            }
+        }
 
         const dialogues = [
             '「嗯……讓我仔細瞧瞧……」',
@@ -551,44 +611,35 @@
         }
 
         function downloadTemplate() {
-            const templateData = [
-                { "班級": "四年甲班", "座號": "01", "學生姓名": "陳小明", "所屬學院": "陽學院", "表現/競賽事由": "校慶運動會大拉力賽", "成績/名次": "第一名", "獲給積分": 10, "紀錄教師/填表人": "王大同老師" }
-            ];
-            const worksheet = XLSX.utils.json_to_sheet(templateData);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "成績紀錄填寫範本");
-            XLSX.writeFile(workbook, "陽明山國小_學生成績與積分登錄範本.xlsx");
+            const bytes = Uint8Array.from(atob('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'), c => c.charCodeAt(0));
+            const url = URL.createObjectURL(new Blob([bytes], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
+            const link = document.createElement('a');
+            link.href = url; link.download = '陽明山國小_學生成績與積分登錄範本.xlsx';
+            document.body.appendChild(link); link.click(); link.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 60000);
+        }
+        function readScoreTemplateRows(firstSheet) {
+            const header = ['班級','座號','學生姓名','所屬學院','表現/競賽事由','成績/名次','獲給積分','紀錄教師/填表人'];
+            if (!header.every((name,i) => firstSheet[XLSX.utils.encode_cell({r:0,c:i})]?.v === name)) {
+                throw new Error('欄位名稱不符，請下載新版範本並保留第1列欄位名稱。');
+            }
+            if (firstSheet.C2?.v !== '陳小明（範例，請勿刪除）') {
+                throw new Error('請保留第2列範例且不要修改範例姓名。請下載新版範本，將正式資料貼到第3列起。');
+            }
+            // 從實際第3列開始讀取，範例列永遠不匯入。
+            return XLSX.utils.sheet_to_json(firstSheet, {range:2,header,defval:''});
         }
 
-        // 每月最後 7 個日曆日（含最後一天），以臺灣時間計算。
+        // 臺灣日期供上傳備份檔名使用。
         function taiwanUploadWindow(now = new Date()) {
             const parts = new Intl.DateTimeFormat('en-US', {
                 timeZone:'Asia/Taipei',year:'numeric',month:'numeric',day:'numeric'
             }).formatToParts(now);
             const value = type => Number(parts.find(part => part.type === type).value);
             const year = value('year'), month = value('month'), day = value('day');
-            const lastDay = new Date(Date.UTC(year,month,0)).getUTCDate();
-            return {year,month,day,startDay:lastDay - 6,lastDay,
-                open:day >= lastDay - 6};
+            return {year,month,day};
         }
-        function updateUploadWindow() {
-            const w = taiwanUploadWindow();
-            document.getElementById('uploadWindowStatus').textContent = w.open
-                ? `今天是 ${w.year} 年 ${w.month} 月 ${w.day} 日（臺灣時間）。目前可以上傳；本月開放 ${w.month} 月 ${w.startDay}～${w.lastDay} 日，月底 23:59 截止。`
-                : `今天是 ${w.year} 年 ${w.month} 月 ${w.day} 日（臺灣時間）。目前不能上傳；本月開放 ${w.month} 月 ${w.startDay}～${w.lastDay} 日。`;
-            document.getElementById('uploadExcelBtn').disabled = !w.open;
-            document.getElementById('excelFileInput').disabled = !w.open;
-            return w.open;
-        }
-        updateUploadWindow();
-        setInterval(updateUploadWindow, 30000);
-        document.addEventListener('visibilitychange', updateUploadWindow);
-
         function uploadExcel() {
-            if (!updateUploadWindow()) {
-                alert('成績上傳僅限每月最後 7 個日曆日（臺灣時間）。');
-                return;
-            }
             const fileInput = document.getElementById('excelFileInput');
             const file = fileInput.files[0];
             const uploader = document.getElementById('uploadTeacher').value.trim();
@@ -599,16 +650,14 @@
 
             const reader = new FileReader();
             reader.onload = function(e) {
-                if (!updateUploadWindow()) {
-                    alert('上傳期限已結束，檔案尚未匯入。');
-                    return;
-                }
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, { type: 'array' });
                 const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                let jsonData;
+                try { jsonData = readScoreTemplateRows(firstSheet); }
+                catch (error) { alert(error.message); return; }
 
-                if (jsonData.length === 0) { alert('檔案內沒有數據！'); return; }
+                if (jsonData.length === 0) { alert('沒有正式資料可匯入，請從第3列開始填寫。'); return; }
 
                 const nowTime = new Date().toLocaleString('zh-TW', {timeZone:'Asia/Taipei'});
                 const date = taiwanUploadWindow();
@@ -620,7 +669,7 @@
                 jsonData.forEach(row => {
                     const name = row["學生姓名"];
                     const className = row["班級"] || "";
-                    const houseName = row["所屬學院"] || "陽學院";
+                    const houseName = String(row["所屬學院"] || "陽學院");
                     const reason = row["表現/競賽事由"] || "未填寫事由";
                     const rank = row["成績/名次"] || "";
                     const points = parseInt(row["獲給積分"]) || 0;
