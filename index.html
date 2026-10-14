@@ -213,6 +213,22 @@
 
         <!-- TAB 2: 教師批次上傳與範本下載 -->
         <div id="tab-import" class="tab-content">
+            <div id="scoreLoginPanel" class="panel" style="max-width:520px;margin:0 auto 20px;">
+                <div class="panel-title">🔒 積分輸入專區</div>
+                <p style="color:#cbd5e1;margin-bottom:16px;">請輸入密碼，解鎖教師成績與積分上傳功能。</p>
+                <form onsubmit="event.preventDefault(); unlockScoreInput();">
+                    <label for="scoreInputPassword">積分輸入密碼</label>
+                    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;">
+                        <input id="scoreInputPassword" type="password" inputmode="numeric" autocomplete="off" required placeholder="請輸入密碼" style="flex:1;min-width:180px;">
+                        <button type="submit" class="btn-action">🔓 解鎖</button>
+                    </div>
+                    <p id="scoreLoginStatus" role="status" aria-live="polite" style="color:#fca5a5;margin-top:12px;"></p>
+                </form>
+            </div>
+            <div id="scoreInputArea" hidden>
+            <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+                <button type="button" class="btn-action" onclick="lockScoreInput()">🔒 重新上鎖</button>
+            </div>
             <div class="panel">
                 <div class="panel-title">
                     <span>📄 Excel 批次成績與榮譽登錄</span>
@@ -243,6 +259,7 @@
                 </div>
             </div>
 
+            </div>
         </div>
 
         <div id="tab-admin" class="tab-content">
@@ -346,7 +363,35 @@
 
         const ADMIN_PASSWORD = "ymps6366";
 
+        const SCORE_INPUT_PASSWORD = '28616366';
+        let scoreInputUnlocked = false;
+        function unlockScoreInput() {
+            const field = document.getElementById('scoreInputPassword');
+            if (field.value !== SCORE_INPUT_PASSWORD) {
+                document.getElementById('scoreLoginStatus').textContent = '密碼錯誤，請重新輸入。';
+                field.value = '';
+                field.focus();
+                return;
+            }
+            scoreInputUnlocked = true;
+            field.value = '';
+            document.getElementById('scoreLoginStatus').textContent = '';
+            document.getElementById('scoreLoginPanel').hidden = true;
+            document.getElementById('scoreInputArea').hidden = false;
+            document.getElementById('uploadTeacher').focus();
+        }
+        function lockScoreInput() {
+            scoreInputUnlocked = false;
+            document.getElementById('scoreInputArea').hidden = true;
+            document.getElementById('scoreLoginPanel').hidden = false;
+            document.getElementById('scoreInputPassword').value = '';
+            document.getElementById('scoreLoginStatus').textContent = '';
+            document.getElementById('excelFileInput').value = '';
+            document.getElementById('uploadTeacher').value = '';
+        }
+
         function switchTab(tabId, button) {
+            if (tabId !== 'import') lockScoreInput();
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
             document.getElementById('tab-' + tabId).classList.add('active');
@@ -640,6 +685,7 @@
             return {year,month,day};
         }
         function uploadExcel() {
+            if (!scoreInputUnlocked) { alert('請先輸入密碼解鎖積分輸入專區。'); return; }
             const fileInput = document.getElementById('excelFileInput');
             const file = fileInput.files[0];
             const uploader = document.getElementById('uploadTeacher').value.trim();
@@ -650,6 +696,7 @@
 
             const reader = new FileReader();
             reader.onload = function(e) {
+                if (!scoreInputUnlocked) { alert('頁面已上鎖，請重新解鎖後上傳。'); return; }
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, { type: 'array' });
                 const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
