@@ -272,6 +272,20 @@
                         <button class="btn-action btn-purple" onclick="unlockAdmin()">🔓 驗證並解鎖權限</button>
                     </div>
                     <div id="adminExportArea" style="display: none; margin-top: 15px; padding-top: 15px; border-top: 1px solid #334155;">
+                        <section style="margin:20px 0;padding:16px;border:1px solid #475569;border-radius:12px">
+                          <h3 style="color:#fbbf24;margin-bottom:10px">🏆 學院加分與修訂（管理員）</h3>
+                          <p style="color:#cbd5e1;margin-bottom:12px">直接為學院加分；已登錄的加分可修改或刪除，系統會自動調整學院總積分。與學生個人成績紀錄分開管理。</p>
+                          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+                            <label>學院<select id="bonusHouse"><option value="yang">陽學院</option><option value="ming">明學院</option><option value="shan">山學院</option></select></label>
+                            <label>加分點數<input id="bonusPoints" type="number" min="1" step="1" placeholder="例如 10"></label>
+                            <label>加分事由<input id="bonusReason" type="text" placeholder="例如：學院活動"></label>
+                            <label>登錄／修訂人<input id="bonusOperator" type="text" placeholder="請填姓名"></label>
+                          </div>
+                          <button type="button" class="btn-action btn-green" id="bonusSaveBtn" onclick="saveHouseBonus()">新增學院加分</button>
+                          <button type="button" class="btn-action" onclick="cancelHouseBonusEdit()">取消修訂</button>
+                          <p id="bonusStatus" role="status" style="margin:12px 0"></p>
+                          <div id="bonusHistory" class="history-list" style="max-height:320px"></div>
+                        </section>
                         <details style="margin-top:24px"><summary>進階管理：全校資料表</summary><section>
 <h3>🗂️ 資料表管理</h3>
 <p style="margin:12px 0">選擇資料表後載入。可逐筆修改或刪除，也可在表格中一次修改多筆，再儲存整張表。所有變更會檢查雲端版本並留下操作紀錄。清空只影響所選資料表。</p>
@@ -802,9 +816,87 @@
             if (pwd === ADMIN_PASSWORD) {
                 adminUnlocked = true;
                 document.getElementById('adminExportArea').style.display = 'block';
-                renderScoreBatches(); renderCorrections();
+                renderScoreBatches(); renderCorrections(); renderHouseBonuses();
                 alert('管理者身分驗證成功！');
             } else { adminUnlocked = false; document.getElementById('adminExportArea').style.display = 'none'; alert('密碼錯誤！'); }
+        }
+
+        // 學院加分獨立流水帳：修訂時只補差額，避免重複計分。
+        let houseBonusRecords = {};
+        let editingBonusId = null;
+        db.ref('houseBonusRecords').on('value', snap => {
+            houseBonusRecords = snap.val() || {};
+            renderHouseBonuses();
+        });
+        function renderHouseBonuses() {
+            const panel = document.getElementById('bonusHistory');
+            if (!panel || !adminUnlocked) return;
+            panel.replaceChildren();
+            const entries = Object.entries(houseBonusRecords).sort((a,b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
+            if (!entries.length) { panel.textContent = '尚無學院加分紀錄。'; return; }
+            entries.forEach(([id,r]) => {
+                const row = document.createElement('div');
+                row.className = 'history-item'; row.style.gap='10px'; row.style.flexWrap='wrap';
+                const info = document.createElement('span');
+                info.textContent = `${houses[r.houseKey]?.name || '未知學院'}　+${r.points} 點｜${r.reason || ''}｜${r.operator || ''}`;
+                const edit = document.createElement('button'); edit.className='btn-action btn-blue'; edit.textContent='修訂';
+                edit.onclick=()=>{ editingBonusId=id; document.getElementById('bonusHouse').value=r.houseKey; document.getElementById('bonusPoints').value=r.points; document.getElementById('bonusReason').value=r.reason || ''; document.getElementById('bonusOperator').value=r.operator || ''; document.getElementById('bonusSaveBtn').textContent='儲存修訂'; document.getElementById('bonusStatus').textContent='正在修訂既有紀錄'; };
+                const del=document.createElement('button'); del.className='btn-action btn-danger'; del.textContent='刪除';
+                del.onclick=()=>deleteHouseBonus(id);
+                row.append(info,edit,del); panel.appendChild(row);
+            });
+        }
+        function cancelHouseBonusEdit() {
+            editingBonusId=null;
+            document.getElementById('bonusSaveBtn').textContent='新增學院加分';
+            document.getElementById('bonusPoints').value=''; document.getElementById('bonusReason').value='';
+        }
+        async function changeHouseBonus(id, replacement, action) {
+            if (!adminUnlocked || !online) throw new Error('請先登入管理員並確認雲端連線。');
+            const old = id ? houseBonusRecords[id] : null;
+            if (id && !old) throw new Error('紀錄不存在，請重新整理。');
+            const key = id || db.ref('houseBonusRecords').push().key;
+            const auditKey=db.ref('houseBonusAudit').push().key;
+            const audit={action,recordId:key,before:old || null,after:replacement || null,
+                operator:replacement?.operator || document.getElementById('bonusOperator').value.trim(),
+                timestamp:firebase.database.ServerValue.TIMESTAMP};
+            const result=await db.ref().transaction(current=>{
+                if (!current) current={};
+                const records=current.houseBonusRecords || {};
+                if (id && JSON.stringify(records[id] || null)!==JSON.stringify(old)) return;
+                if (!id && records[key]) return;
+                const scores={...(current.houseScores || {})};
+                if (old) scores[old.houseKey]=(Number(scores[old.houseKey]) || 0)-Number(old.points);
+                if (replacement) scores[replacement.houseKey]=(Number(scores[replacement.houseKey]) || 0)+Number(replacement.points);
+                if (Object.values(scores).some(n=>!Number.isFinite(n) || n<0)) return;
+                const nextRecords={...records};
+                if (replacement) nextRecords[key]=replacement; else delete nextRecords[key];
+                return {...current,houseScores:scores,houseBonusRecords:nextRecords,
+                    houseBonusAudit:{...(current.houseBonusAudit || {}),[auditKey]:audit}};
+            },undefined,false);
+            if (!result.committed) throw new Error('資料已更新或扣分後會小於零，請重新確認。');
+        }
+        async function saveHouseBonus() {
+            const status=document.getElementById('bonusStatus');
+            const houseKey=document.getElementById('bonusHouse').value;
+            const points=Number(document.getElementById('bonusPoints').value);
+            const reason=document.getElementById('bonusReason').value.trim();
+            const operator=document.getElementById('bonusOperator').value.trim();
+            if (!houses[houseKey] || !Number.isSafeInteger(points) || points<=0 || !reason || !operator) { status.textContent='請填寫學院、正整數點數、事由與操作人。'; return; }
+            const button=document.getElementById('bonusSaveBtn'); button.disabled=true;
+            try {
+                const id=editingBonusId;
+                const previous=id ? houseBonusRecords[id] : null;
+                const replacement={houseKey,points,reason,operator,createdAt:previous?.createdAt || Date.now(),updatedAt:Date.now()};
+                await changeHouseBonus(id,replacement,id?'edit':'add');
+                cancelHouseBonusEdit(); status.textContent='已同步更新學院積分及加分紀錄。';
+            } catch(e) { status.textContent='操作失敗：'+e.message; }
+            finally { button.disabled=false; }
+        }
+        async function deleteHouseBonus(id) {
+            if (!adminUnlocked || !confirm('確定刪除此筆學院加分，並從學院總積分扣回原點數？')) return;
+            try { await changeHouseBonus(id,null,'delete'); if(editingBonusId===id) cancelHouseBonusEdit(); document.getElementById('bonusStatus').textContent='已刪除加分並扣回積分。'; }
+            catch(e) { document.getElementById('bonusStatus').textContent='刪除失敗：'+e.message; }
         }
 
         function exportMasterTable() {
