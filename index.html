@@ -144,7 +144,7 @@
                         <option value="g5">五年級</option>
                         <option value="g6">六年級</option>
                         <option value="dean">院長（3人）</option>
-                        <option value="wizard">魔法師（26人）</option>
+                        <option value="wizard">魔法師（28人）</option>
                         
                     </select>
                     <input type="text" id="studentName" placeholder="請輸入姓名..." autocomplete="off" style="flex: 1.5; min-width: 160px;">
@@ -194,7 +194,7 @@
                             <tr><td>五年級</td><td id="count-g5-yang">0</td><td id="count-g5-ming">0</td><td id="count-g5-shan">0</td><td id="total-g5">0</td></tr>
                             <tr><td>六年級</td><td id="count-g6-yang">0</td><td id="count-g6-ming">0</td><td id="count-g6-shan">0</td><td id="total-g6">0</td></tr>
                             <tr><td>院長（3人）</td><td id="count-dean-yang">0</td><td id="count-dean-ming">0</td><td id="count-dean-shan">0</td><td id="total-dean">0</td></tr>
-                            <tr><td>魔法師（26人）</td><td id="count-wizard-yang">0</td><td id="count-wizard-ming">0</td><td id="count-wizard-shan">0</td><td id="total-wizard">0</td></tr>
+                            <tr><td>魔法師（28人）</td><td id="count-wizard-yang">0</td><td id="count-wizard-ming">0</td><td id="count-wizard-shan">0</td><td id="total-wizard">0</td></tr>
                             <tr style="font-weight:bold"><td>全校合計</td><td id="grand-yang">0</td><td id="grand-ming">0</td><td id="grand-shan">0</td><td id="grand-total">0</td></tr>
                         </tbody>
                     </table>
@@ -454,7 +454,7 @@
         const houseKeys = ['yang','ming','shan'];
         const studentGradeKeys = ['g1','g2','g3','g4','g5','g6'];
         const plannedTotal = 87;
-        const categoryLimits = {dean:3, wizard:26};
+        const categoryLimits = {dean:3, wizard:28};
         function categoryFull(records, grade) {
             return categoryLimits[grade] !== undefined &&
                 Object.values(records || {}).filter(r => r && r.grade === grade && houses[r.houseKey]).length >= categoryLimits[grade];
@@ -504,7 +504,7 @@
             houseKeys.forEach(h => document.getElementById(`grand-${h}`).textContent = totals[h]);
             document.getElementById('grand-total').textContent = done;
             document.getElementById('sortingProgress').textContent =
-                `學生 ${studentGradeKeys.reduce((sum,g) => sum + houseKeys.reduce((n,h) => n + counts[g][h],0),0)}／${plannedTotal} 人　｜　院長 ${houseKeys.reduce((sum,h) => sum + counts.dean[h],0)}／3 人　｜　魔法師 ${houseKeys.reduce((sum,h) => sum + counts.wizard[h],0)}／26 人　｜　全部已分類 ${done} 人`;
+                `學生 ${studentGradeKeys.reduce((sum,g) => sum + houseKeys.reduce((n,h) => n + counts[g][h],0),0)}／${plannedTotal} 人　｜　院長 ${houseKeys.reduce((sum,h) => sum + counts.dean[h],0)}／3 人　｜　魔法師 ${houseKeys.reduce((sum,h) => sum + counts.wizard[h],0)}／28 人　｜　全部已分類 ${done} 人`;
             const list = document.getElementById('historyList');
             list.replaceChildren();
             const items = Object.values(records || {}).filter(r => r && gradeLabels[r.grade] && houses[r.houseKey])
