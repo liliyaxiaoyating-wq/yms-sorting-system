@@ -836,7 +836,7 @@
         let bonusUnlocked = false;
         function unlockHouseBonus() {
             const field = document.getElementById('bonusPassword');
-            if (field.value !== ADMIN_PASSWORD) {
+            if (field.value !== SCORE_INPUT_PASSWORD) {
                 document.getElementById('bonusLoginStatus').textContent = '密碼錯誤，請重新輸入。';
                 field.value = ''; return;
             }
